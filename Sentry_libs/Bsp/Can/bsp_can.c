@@ -328,13 +328,13 @@ static void Can_Register_To_x_Instance(CanInstance_s *instance) {
  */
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 CanInstance_s *Can_Register(CanInitConfig_s *can_config) {
-    /* 检查注册条件 */
-    if (Can_Register_Check(can_config) == false) {
-        return NULL;
-    }
     /* 如果是第一次注册CAN实例，则初始化CAN模块 */
     if (can_init_flag) {
         Can_Init();
+    }
+    /* 检查注册条件 */
+    if (Can_Register_Check(can_config) == false) {
+        return NULL;
     }
     /* 分配内存并初始化CAN实例 */
     CanInstance_s *instance = user_malloc(sizeof(CanInstance_s));
@@ -397,6 +397,11 @@ bool Can_Transmit_External_Tx_Buff(const CanInstance_s *instance, const uint8_t 
     /*@todo 重写并整合下面两个HAL库的函数可以减少一次寻找空邮箱的操作*/
     /* 等待直到有可用的发送邮箱 */
     while (HAL_CAN_GetTxMailboxesFreeLevel(instance->can_handle) == 0) {
+		cnt_tx_cnt++;
+		if(cnt_tx_cnt>100){ //大概10ms
+            Log_Error("Can Transmit Failed, No Mailbox Free");
+			return false;
+		}
     }
     /* 将消息添加到发送邮箱队列 */
     /* @note 这里虽然使用了CAN_TX_MAILBOX0，但是在函数内部会进行寻找空邮箱再发送的操作 */
@@ -414,7 +419,17 @@ bool Can_Transmit_External_Tx_Buff(const CanInstance_s *instance, const uint8_t 
  * @return 如果数据发送成功则返回true，否则返回false
  */
 bool Can_Transmit(const CanInstance_s *instance) {
+	if(instance==NULL){
+		Log_Error("Can Transmit Failed, Instance is NULL");
+		return false;
+	}
+	uint8_t can_tx_cnt = 0;
     while (HAL_CAN_GetTxMailboxesFreeLevel(instance->can_handle) == 0) {
+		cnt_tx_cnt++;
+		if(cnt_tx_cnt>100){ //大概10ms
+            Log_Error("Can Transmit Failed, No Mailbox Free");
+			return false;
+		}
     }
     if (HAL_CAN_AddTxMessage(instance->can_handle, &instance->tx_header, (uint8_t *) instance->tx_buff,
                              (uint32_t *) CAN_TX_MAILBOX0) == HAL_OK) {

@@ -1,4 +1,4 @@
-#include "bsp_fdcan.h" 
+#include "bsp_fdcan.h"
 #include <string.h>
 #include <stdbool.h>
 #include "FreeRTOS.h"
@@ -27,15 +27,31 @@ static uint8_t idx3;
 static CanInstance_s *fdcan3_instance[FDCAN_MAX_REGISTER_CNT]; // CAN3
 #endif
 
-/* 过滤器编号 */
-// ReSharper disable once CppDeclaratorNeverUsed
-static uint8_t can_filter_index = 0;
 
 /* fdcan初始化标志 */
 static bool fdcan_init_flag = true;
 /* 接收帧 */
-static FDCAN_RxFrame_TypeDef *FDCAN_RxFIFO0Frame;
-static FDCAN_RxFrame_TypeDef *FDCAN_RxFIFO1Frame;
+ FDCAN_RxFrame_TypeDef *FDCAN_RxFIFO0Frame;
+ FDCAN_RxFrame_TypeDef *FDCAN_RxFIFO1Frame;
+
+
+FDCAN_FilterTypeDef FDCAN_FIFO0_Filter = {
+    .IdType = FDCAN_STANDARD_ID,
+    .FilterIndex = 0, // 过滤器编号
+    .FilterType = FDCAN_FILTER_MASK, // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
+    .FilterConfig = FDCAN_FILTER_TO_RXFIFO0,
+    .FilterID1 = 0x00000000, // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
+    .FilterID2 = 0x00000000, // 过滤器 ID2
+};
+FDCAN_FilterTypeDef FDCAN_FIFO1_Filter = {
+    .IdType = FDCAN_STANDARD_ID,
+    .FilterIndex = 1, // 过滤器编号
+    .FilterType = FDCAN_FILTER_MASK, // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
+    .FilterConfig = FDCAN_FILTER_TO_RXFIFO1,
+    .FilterID1 = 0x00000000, // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
+    .FilterID2 = 0x00000000, // 过滤器 ID2
+};
+
 /* 私有函数 ---------------------------------------------------------------------*/
 /**
  * @brief 初始化 FDCAN 过滤器配置。
@@ -46,15 +62,8 @@ static FDCAN_RxFrame_TypeDef *FDCAN_RxFIFO1Frame;
  */
 static void Can_Filter_Init(void){
 #ifdef USER_CAN1_FIFO_0
-    FDCAN_FilterTypeDef FDCAN1_FilterFifo0Config;
-    FDCAN1_FilterFifo0Config.IdType = FDCAN_STANDARD_ID;
-    FDCAN1_FilterFifo0Config.FilterIndex = can_filter_index; // 过滤器编号，用几路 CAN 就以此类推 0、1、2
-    FDCAN1_FilterFifo0Config.FilterType = FDCAN_FILTER_MASK; // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
-    FDCAN1_FilterFifo0Config.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    FDCAN1_FilterFifo0Config.FilterID1 = 0x00000000; // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
-    FDCAN1_FilterFifo0Config.FilterID2 = 0x00000000; // 过滤器 ID2
 
-    while (HAL_FDCAN_ConfigFilter(&hfdcan1, &FDCAN1_FilterFifo0Config) != HAL_OK) {
+    while (HAL_FDCAN_ConfigFilter(&hfdcan1, &FDCAN_FIFO0_Filter) != HAL_OK) {
         Log_Error("FDCAN1 Fifo0 configs filter failed");
     } // 拒绝接收匹配不成功的标准 ID 和扩展 ID, 不接受远程帧
     while (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) !=
@@ -65,18 +74,9 @@ static void Can_Filter_Init(void){
     while (HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO0, 1) != HAL_OK) {
         Log_Error("FDCAN1 Fifo0 configs fifo watermark failed");
     }
-    can_filter_index++;
 #endif
 #ifdef USER_CAN1_FIFO_1
-    FDCAN_FilterTypeDef FDCAN1_FilterFifo1Config;
-    FDCAN1_FilterFifo1Config.IdType = FDCAN_STANDARD_ID;
-    FDCAN1_FilterFifo1Config.FilterIndex = can_filter_index; // 过滤器编号
-    FDCAN1_FilterFifo1Config.FilterType = FDCAN_FILTER_MASK; // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
-    FDCAN1_FilterFifo1Config.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
-    FDCAN1_FilterFifo1Config.FilterID1 = 0x00000000; // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
-    FDCAN1_FilterFifo1Config.FilterID2 = 0x00000000; // 过滤器 ID2
-
-    while (HAL_FDCAN_ConfigFilter(&hfdcan1, &FDCAN1_FilterFifo1Config) != HAL_OK) {
+    while (HAL_FDCAN_ConfigFilter(&hfdcan1, &FDCAN_FIFO1_Filter) != HAL_OK) {
         Log_Error("FDCAN1 Fifo1 configs filter failed");
     } // 拒绝接收匹配不成功的标准 ID 和扩展 ID, 不接受远程帧
     while (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) !=
@@ -87,18 +87,9 @@ static void Can_Filter_Init(void){
     while (HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO1, 1) != HAL_OK) {
         Log_Error("FDCAN1 Fifo1 configs fifo watermark failed");
     }
-    can_filter_index++;
 #endif
 #ifdef USER_CAN2_FIFO_0
-    FDCAN_FilterTypeDef FDCAN2_FilterFifo0Config;
-    FDCAN2_FilterFifo0Config.IdType = FDCAN_STANDARD_ID;
-    FDCAN2_FilterFifo0Config.FilterIndex = can_filter_index; // 过滤器编号
-    FDCAN2_FilterFifo0Config.FilterType = FDCAN_FILTER_MASK; // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
-    FDCAN2_FilterFifo0Config.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    FDCAN2_FilterFifo0Config.FilterID1 = 0x00000000; // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
-    FDCAN2_FilterFifo0Config.FilterID2 = 0x00000000; // 过滤器 ID2
-
-    while (HAL_FDCAN_ConfigFilter(&hfdcan2, &FDCAN2_FilterFifo0Config) != HAL_OK) {
+    while (HAL_FDCAN_ConfigFilter(&hfdcan2, &FDCAN_FIFO0_Filter) != HAL_OK) {
         Log_Error("FDCAN2 Fifo0 configs filter failed");
     } // 拒绝接收匹配不成功的标准 ID 和扩展 ID, 不接受远程帧
     while (HAL_FDCAN_ConfigGlobalFilter(&hfdcan2, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) !=
@@ -109,18 +100,9 @@ static void Can_Filter_Init(void){
     while (HAL_FDCAN_ConfigFifoWatermark(&hfdcan2, FDCAN_CFG_RX_FIFO0, 1) != HAL_OK) {
         Log_Error("FDCAN2 Fifo0 configs fifo watermark failed");
     }
-    can_filter_index++;
 #endif
 #ifdef USER_CAN2_FIFO_1
-    FDCAN_FilterTypeDef FDCAN2_FilterFifo1Config;
-    FDCAN2_FilterFifo1Config.IdType = FDCAN_STANDARD_ID;
-    FDCAN2_FilterFifo1Config.FilterIndex = can_filter_index; // 过滤器编号
-    FDCAN2_FilterFifo1Config.FilterType = FDCAN_FILTER_MASK; // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
-    FDCAN2_FilterFifo1Config.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
-    FDCAN2_FilterFifo1Config.FilterID1 = 0x00000000; // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
-    FDCAN2_FilterFifo1Config.FilterID2 = 0x00000000; // 过滤器 ID2
-
-    while (HAL_FDCAN_ConfigFilter(&hfdcan2, &FDCAN2_FilterFifo1Config) != HAL_OK) {
+    while (HAL_FDCAN_ConfigFilter(&hfdcan2, &FDCAN_FIFO1_Filter) != HAL_OK) {
         Log_Error("FDCAN2 Fifo1 configs filter failed");
     } // 拒绝接收匹配不成功的标准 ID 和扩展 ID, 不接受远程帧
     while (HAL_FDCAN_ConfigGlobalFilter(&hfdcan2, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) !=
@@ -131,18 +113,9 @@ static void Can_Filter_Init(void){
     while (HAL_FDCAN_ConfigFifoWatermark(&hfdcan2, FDCAN_CFG_RX_FIFO1, 1) != HAL_OK) {
         Log_Error("FDCAN2 Fifo1 configs fifo watermark failed");
     }
-    can_filter_index++;
 #endif
 #ifdef USER_CAN3_FIFO_0
-    FDCAN_FilterTypeDef FDCAN3_FilterFifo0Config;
-    FDCAN3_FilterFifo0Config.IdType = FDCAN_STANDARD_ID;
-    FDCAN3_FilterFifo0Config.FilterIndex = can_filter_index; // 过滤器编号
-    FDCAN3_FilterFifo0Config.FilterType = FDCAN_FILTER_MASK; // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
-    FDCAN3_FilterFifo0Config.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    FDCAN3_FilterFifo0Config.FilterID1 = 0x00000000; // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
-    FDCAN3_FilterFifo0Config.FilterID2 = 0x00000000; // 过滤器 ID2
-
-    while (HAL_FDCAN_ConfigFilter(&hfdcan3, &FDCAN3_FilterFifo0Config) != HAL_OK) {
+    while (HAL_FDCAN_ConfigFilter(&hfdcan3, &FDCAN_FIFO0_Filter) != HAL_OK) {
         Log_Error("FDCAN3 Fifo0 configs filter failed");
     } // 拒绝接收匹配不成功的标准 ID 和扩展 ID, 不接受远程帧
     while (HAL_FDCAN_ConfigGlobalFilter(&hfdcan3, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) !=
@@ -153,18 +126,9 @@ static void Can_Filter_Init(void){
     while (HAL_FDCAN_ConfigFifoWatermark(&hfdcan3, FDCAN_CFG_RX_FIFO0, 1) != HAL_OK) {
         Log_Error("FDCAN3 Fifo0 configs fifo watermark failed");
     }
-    can_filter_index++;
 #endif
 #ifdef USER_CAN3_FIFO_1
-    FDCAN_FilterTypeDef FDCAN3_FilterFifo1Config;
-    FDCAN3_FilterFifo1Config.IdType = FDCAN_STANDARD_ID;
-    FDCAN3_FilterFifo1Config.FilterIndex = can_filter_index; // 过滤器编号
-    FDCAN3_FilterFifo1Config.FilterType = FDCAN_FILTER_MASK; // 过滤器 Mask 模式 关乎到 ID1ID2 的配置
-    FDCAN3_FilterFifo1Config.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
-    FDCAN3_FilterFifo1Config.FilterID1 = 0x00000000; // 过滤器 ID1，只要 ID2 配置为 0x00000000，就不会过滤任何 ID
-    FDCAN3_FilterFifo1Config.FilterID2 = 0x00000000; // 过滤器 ID2
-
-    while (HAL_FDCAN_ConfigFilter(&hfdcan3, &FDCAN3_FilterFifo1Config) != HAL_OK) {
+    while (HAL_FDCAN_ConfigFilter(&hfdcan3, &FDCAN_FIFO1_Filter) != HAL_OK) {
         Log_Error("FDCAN3 Fifo1 configs filter failed");
     } // 拒绝接收匹配不成功的标准 ID 和扩展 ID, 不接受远程帧
     while (HAL_FDCAN_ConfigGlobalFilter(&hfdcan3, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) !=
@@ -175,7 +139,6 @@ static void Can_Filter_Init(void){
     while (HAL_FDCAN_ConfigFifoWatermark(&hfdcan3, FDCAN_CFG_RX_FIFO1, 1) != HAL_OK) {
         Log_Error("FDCAN3 Fifo1 configs fifo watermark failed");
     }
-    can_filter_index++;
 #endif
 }
 
@@ -254,22 +217,23 @@ static void Can_Init(void) {
 }
 
 // ReSharper disable once CppNotAllPathsReturnValue
-static FDCAN_HandleTypeDef* Select_FDCAN_Handle(const uint8_t can_channel){
+static FDCAN_HandleTypeDef* Select_FDCAN_Handle(const uint8_t can_number) {
 #ifdef USER_CAN1
-    if (can_channel == 1){
+    if (can_number == 1) {
         return &hfdcan1;
     }
 #endif
 #ifdef USER_CAN2
-    if (can_channel == 2){
+    if (can_number == 2) {
         return &hfdcan2;
     }
 #endif
 #ifdef USER_CAN3
-    if (can_channel == 3){
+    if (can_number == 3) {
         return &hfdcan3;
     }
 #endif
+    return NULL;
 }
 
 /* 公共函数 ------------------------------------------------------------------*/
@@ -284,7 +248,7 @@ static FDCAN_HandleTypeDef* Select_FDCAN_Handle(const uint8_t can_channel){
  * @return 如果成功注册则返回指向新创建的CanInstance_s结构的指针；如果配置无效或内存分配失败则返回NULL。
  */
 CanInstance_s *Can_Register(const CanInitConfig_s *config) {
-    if (config == NULL || config->can_channel == 0) {
+    if (config == NULL || config->can_number == 0) {
         Log_Error("%s CanInitConfig Is Null", config->topic_name);
         return NULL; // 参数检查
     }
@@ -301,9 +265,9 @@ CanInstance_s *Can_Register(const CanInitConfig_s *config) {
     instance->tx_id = config->tx_id;
     instance->rx_id = config->rx_id;
     instance->can_module_callback = config->can_module_callback;
-    instance->id = config->id;
+    instance->parent_ptr = config->parent_ptr;
     instance->tx_conf.Identifier = config->tx_id;
-    instance->can_handle = Select_FDCAN_Handle(config->can_channel);
+    instance->can_handle = Select_FDCAN_Handle(config->can_number);
     // config->can_handle->Init.FrameFormat
     instance->tx_conf.IdType = FDCAN_STANDARD_ID; // 标准 ID
     // instance->tx_conf.IdType = instance->can_handle->Init.FrameFormat;
@@ -335,12 +299,46 @@ CanInstance_s *Can_Register(const CanInitConfig_s *config) {
     Log_Passing("%s Register Successfully", instance->topic_name);
     return instance;
 }
-
-bool Can_Transmit(const CanInstance_s *instance, const uint8_t *tx_buff) {
+/**
+ * @brief 通过外部提供的发送缓冲区发送CAN消息。
+ * 该函数检查CAN发送FIFO是否有空闲位置，如果有，则将外部提供的发送缓冲区中的消息添加到发送队列中并返回true。如果发送FIFO满，则函数会等待一段时间（最多100次检查），如果仍然没有空闲位置，则记录错误日志并返回false。
+ * @param instance 指向要使用的CanInstance_s结构体的指针。
+ * @param tx_buff 指向包含要发送的CAN消息数据的缓冲区的指针。
+ * @return 如果消息成功添加到发送队列，返回true；如果发送FIFO满或发生错误，返回false。
+ */
+bool Can_Transmit_External_Tx_Buff( CanInstance_s *instance, uint8_t *tx_buff) {
+    uint8_t can_tx_cnt=0;
     while (HAL_FDCAN_GetTxFifoFreeLevel(instance->can_handle) == 0) {
+        can_tx_cnt++;
+        if(can_tx_cnt>=100) {
+            Log_Error("Can Transmit Timeout");
+            return false;
+        }
     }
 
     if (HAL_FDCAN_AddMessageToTxFifoQ(instance->can_handle, &instance->tx_conf, tx_buff) == HAL_OK) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @brief 通过CAN总线发送数据,为了避免大修MODULE而写的函数
+ * 该函数将实例内部的发送缓冲区数据通过给定的CAN实例发送出去。如果发送成功，返回true；否则返回false
+ * @param instance 指向已注册的CanInstance_s结构体的指针，表示要使用的CAN实例
+ * @return 如果数据发送成功则返回true，否则返回false
+ */
+bool Can_Transmit( CanInstance_s *instance) {
+    uint8_t can_tx_cnt=0;
+    while (HAL_FDCAN_GetTxFifoFreeLevel(instance->can_handle) == 0) {
+        can_tx_cnt++;
+        if(can_tx_cnt>=100) {
+            Log_Error("Can Transmit Timeout");
+            return false;
+        }
+    }
+
+    if (HAL_FDCAN_AddMessageToTxFifoQ(instance->can_handle, &instance->tx_conf, instance->tx_buff) == HAL_OK) {
         return true;
     }
     return false;
@@ -353,19 +351,20 @@ bool Can_Transmit(const CanInstance_s *instance, const uint8_t *tx_buff) {
  * @param idx 表示fdcan_instance数组中CanInstance_s元素的数量的索引。
  * @param fdcan_instance CanInstance_s结构数组，每个结构包含特定CAN实例的配置和回调。
  */
-static void FDCAN_RxFifoCallback(const FDCAN_RxFrame_TypeDef *FDCAN_RxFIFOxFrame, const uint8_t idx, CanInstance_s *fdcan_instance) {
+static void FDCAN_RxFifoCallback(const FDCAN_RxFrame_TypeDef *FDCAN_RxFIFOxFrame, const uint8_t idx, CanInstance_s **fdcan_instance) {
             if (idx == 0)
                 return;
             // ReSharper disable once CppDFAUnreachableCode
             for (uint8_t i = 0; i < idx; i++) {
-                if ( FDCAN_RxFIFOxFrame->Header.Identifier == fdcan_instance[i].rx_id) {
-                    if (fdcan_instance[i].can_module_callback != NULL)
+                if ( FDCAN_RxFIFOxFrame->Header.Identifier == fdcan_instance[i]->rx_id) {
+                    if (fdcan_instance[i]->can_module_callback != NULL)
                     {
-                        fdcan_instance[i].rx_len = FDCAN_RxFIFOxFrame->Header.DataLength;
-                        memcpy(fdcan_instance[i].rx_buff, FDCAN_RxFIFOxFrame->rx_buff,fdcan_instance->rx_len);
-                        fdcan_instance[i].cnt++; // 通信计数+1
-                        if(fdcan_instance[i].cnt>=0xFFFF) fdcan_instance[i].cnt=0; //防止溢出
-                        fdcan_instance[i].can_module_callback(&fdcan_instance[i]);
+                        fdcan_instance[i]->rx_len = FDCAN_RxFIFOxFrame->Header.DataLength;
+                        memcpy(fdcan_instance[i]->rx_buff, FDCAN_RxFIFOxFrame->rx_buff,fdcan_instance[i]->rx_len);
+                        if(fdcan_instance[i]->cnt>=0xFFFF) {
+                               fdcan_instance[i]->cnt=0; //防止溢出
+                        }
+                        fdcan_instance[i]->can_module_callback(fdcan_instance[i]);
                     }
                     break;
                 }
@@ -388,17 +387,17 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 
 #ifdef USER_CAN1_FIFO_0
         if (hfdcan == &hfdcan1){
-            FDCAN_RxFifoCallback(FDCAN_RxFIFO0Frame,idx1,*fdcan1_instance);
+            FDCAN_RxFifoCallback(FDCAN_RxFIFO0Frame,idx1,fdcan1_instance);
         }
 #endif
 #ifdef USER_CAN2_FIFO_0
         if (hfdcan == &hfdcan2){
-            FDCAN_RxFifoCallback(FDCAN_RxFIFO0Frame,idx2,*fdcan2_instance);
+            FDCAN_RxFifoCallback(FDCAN_RxFIFO0Frame,idx2,fdcan2_instance);
         }
 #endif
 #ifdef USER_CAN3_FIFO_0
         if (hfdcan == &hfdcan3){
-            FDCAN_RxFifoCallback(FDCAN_RxFIFO0Frame,idx3,*fdcan3_instance);
+            FDCAN_RxFifoCallback(FDCAN_RxFIFO0Frame,idx3,fdcan3_instance);
         }
 #endif
     }
@@ -418,17 +417,17 @@ void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo1ITs)
         HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &FDCAN_RxFIFO1Frame->Header, FDCAN_RxFIFO0Frame->rx_buff);
 #ifdef USER_CAN1_FIFO_1
         if (hfdcan == &hfdcan1){
-            FDCAN_RxFifoCallback(FDCAN_RxFIFO1Frame,idx1, *fdcan1_instance);
+            FDCAN_RxFifoCallback(FDCAN_RxFIFO1Frame,idx1, fdcan1_instance);
         }
 #endif
 #ifdef USER_CAN2_FIFO_1
         if (hfdcan == &hfdcan2){
-            FDCAN_RxFifoCallback(FDCAN_RxFIFO1Frame,idx2,*fdcan2_instance);
+            FDCAN_RxFifoCallback(FDCAN_RxFIFO1Frame,idx2,fdcan2_instance);
         }
 #endif
 #ifdef USER_CAN3_FIFO_1
         if (hfdcan == &hfdcan3){
-            FDCAN_RxFifoCallback(FDCAN_RxFIFO1Frame,idx3,*fdcan3_instance);
+            FDCAN_RxFifoCallback(FDCAN_RxFIFO1Frame,idx3,fdcan3_instance);
         }
 #endif
     }
