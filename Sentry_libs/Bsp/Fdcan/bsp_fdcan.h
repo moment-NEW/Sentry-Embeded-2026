@@ -29,7 +29,7 @@ typedef struct _CanInstance_s
 typedef struct
 {
     char* topic_name;                  //实例名称
-    uint8_t can_channel;               //can通道号 1,2,3 分别对应 FDCAN1, FDCAN2, FDCAN3，为了抽象接口向module层隐藏HAL库
+    uint8_t can_number;               //can通道号 1,2,3 分别对应 FDCAN1, FDCAN2, FDCAN3，为了抽象接口向module层隐藏HAL库
     uint16_t tx_id;                    //发送id
     uint16_t rx_id;                    //接收id
     void (*can_module_callback)(struct _CanInstance_s *);   //接收的回调函数, 用于解析接收到的数据
@@ -46,7 +46,22 @@ typedef struct {
 }FDCAN_RxFrame_TypeDef;
 
 CanInstance_s* Can_Register(const CanInitConfig_s* config);
-bool Can_Transmit(const CanInstance_s *instance, const uint8_t *tx_buff);
+
+/**
+ * @brief 通过CAN总线发送数据。
+ * 该函数将指定的数据通过给定的CAN实例发送出去。如果发送成功，返回true；否则返回false。
+ * @param instance 指向已注册的CanInstance_s结构体的指针，表示要使用的CAN实例
+ * @param tx_buff 指向要发送的数据缓冲区的指针，数据长度应为8
+ * @return 如果数据发送成功则返回true，否则返回false
+ */
+bool Can_Transmit_External_Tx_Buff( CanInstance_s *instance, uint8_t *tx_buff);
+/**
+ * @brief 通过CAN总线发送数据,为了避免大修MODULE而写的函数
+ * 该函数将实例内部的发送缓冲区数据通过给定的CAN实例发送出去。如果发送成功，返回true；否则返回false。
+ * @param instance 指向已注册的CanInstance_s结构体的指针，表示要使用的CAN实例
+ * @return 如果数据发送成功则返回true，否则返回false
+ */
+bool Can_Transmit( CanInstance_s *instance);
 #endif
 #endif
 
