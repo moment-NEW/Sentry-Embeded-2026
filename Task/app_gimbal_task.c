@@ -21,7 +21,7 @@ uint8_t ControlMode= RC_MODE;
 float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0;
 float target_up_position=0.0;
 #endif
-//电机配置/////////////////////////////////////////
+////////////////////////////电机配置/////////////////////////////////////////
 static DmMotorInitConfig_s Down_config = {
     // .control_mode = DM_VELOCITY,    
 	.control_mode = DM_POSITION, // 位置控制模式
@@ -102,7 +102,7 @@ static DmMotorInitConfig_s pitch_config = {
     }
 };
 static  DjiMotorInitConfig_s Up_config = {
-    .id = 1 ,                      // 电机ID(1~4)
+    .id = 3 ,                      // 电机ID(1~4)
     .type = GM6020,               // 电机类型
     .control_mode = DJI_POSITION,  // 电机控制模式
 		.topic_name = "up_yaw",
@@ -110,7 +110,7 @@ static  DjiMotorInitConfig_s Up_config = {
         .can_number = 1,
 				.topic_name = "up_yaw",              // can句柄
         .tx_id = 0x1FE,                     // 发送id 
-        .rx_id = 0x205,                     // 接收id
+        .rx_id = 0x207,                     // 接收id
     },
     .reduction_ratio = 1,              // 减速比
 
@@ -189,7 +189,7 @@ void StartGimbalTask(void const * argument)
 				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case TRANS_MODE:
-	      Motor_Dm_Cmd(Down_yaw,  DM_CMD_MOTOR_ENABLE);
+	      Motor_Dm_Cmd(Down_yaw, DM_CMD_MOTOR_ENABLE);
         Motor_Dm_Transmit(Down_yaw);
 				break;
 		}
