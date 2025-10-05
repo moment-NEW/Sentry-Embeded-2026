@@ -14,7 +14,7 @@
 
 #include "dev_dr16.h"
 #include "dev_motor_dm.h"
-
+#include "dev_motor_dji.h"
 
 // 通信系统
 #include "Com_System.h"
@@ -24,7 +24,9 @@
 //宏定义
 #define PC_MODE 1
 #define RC_MODE 2
+#define TRANS_MODE 3//用于失能，使能之间的过渡
 #define DISABLE_MODE 0
+
 // 函数声明
 void StartGimbalTask(void const * argument);
 

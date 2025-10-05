@@ -53,5 +53,6 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
   ..\Sentry_libs\Bsp\Can\bsp_can.h ..\Core\Inc\can.h \
   ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
+  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
   ..\Sentry_libs\Module\Com_System\Queue.h
