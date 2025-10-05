@@ -396,9 +396,10 @@ bool Can_Transmit_External_Tx_Buff(const CanInstance_s *instance, const uint8_t 
     }
     /*@todo 重写并整合下面两个HAL库的函数可以减少一次寻找空邮箱的操作*/
     /* 等待直到有可用的发送邮箱 */
+		uint8_t can_tx_cnt=0;
     while (HAL_CAN_GetTxMailboxesFreeLevel(instance->can_handle) == 0) {
-		cnt_tx_cnt++;
-		if(cnt_tx_cnt>100){ //大概10ms
+		can_tx_cnt++;
+		if(can_tx_cnt>100){ //大概10ms
             Log_Error("Can Transmit Failed, No Mailbox Free");
 			return false;
 		}
@@ -425,8 +426,8 @@ bool Can_Transmit(const CanInstance_s *instance) {
 	}
 	uint8_t can_tx_cnt = 0;
     while (HAL_CAN_GetTxMailboxesFreeLevel(instance->can_handle) == 0) {
-		cnt_tx_cnt++;
-		if(cnt_tx_cnt>100){ //大概10ms
+		can_tx_cnt++;
+		if(can_tx_cnt>100){ //大概10ms
             Log_Error("Can Transmit Failed, No Mailbox Free");
 			return false;
 		}

@@ -15,12 +15,12 @@ uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 #else
 uint8_t ControlMode= RC_MODE;
-float target_position=0.0;
+float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0;
 #endif
 //电机配置/////////////////////////////////////////
 static DmMotorInitConfig_s Down_config = {
-//    .control_mode = DM_VELOCITY,     // 位置控制模式
-	.control_mode = DM_POSITION,
+    // .control_mode = DM_VELOCITY,    
+	.control_mode = DM_POSITION, // 位置控制模式
 		.topic_name = "down_yaw",
     .can_config = {
         .can_number = 1,
@@ -79,6 +79,10 @@ void StartGimbalTask(void const * argument)
  
   for(;;)
   {
+		#ifdef DEBUG
+		test_speed=Down_yaw->message.out_velocity;
+		test_position=Down_yaw->message.out_position;
+		#endif
 		switch (ControlMode) {
 			case PC_MODE:
 				break;
