@@ -97,11 +97,12 @@ static void Motor_Dji_Decode(CanInstance_s *can_instance){
         motor->message.total_angle = 0;
     }
 
-    float out_position;
-    if(motor->message.total_angle < 0)
-        out_position += DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
-    else if(motor->message.total_angle > DJI_ECD_ANGLE_MAX*motor->reduction_ratio)
+    int16_t out_position = motor->message.total_angle;
+    while(out_position < 0)
+       out_position += DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
+    while(out_position > DJI_ECD_ANGLE_MAX*motor->reduction_ratio)
         out_position -= DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
+		
     motor->message.out_position =out_position*DJI_ECD_ANGLE_COEF/motor->reduction_ratio-PI;
 }
 
