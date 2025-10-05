@@ -67,8 +67,9 @@
 "frame\queue_1.o"
 "frame\dev_motor_dm.o"
 "frame\dev_motor_dji.o"
-"frame\app_gimbal_task.o"
+"frame\app_chassis_task.o"
 "frame\alg_pid.o"
+"frame\alg_chassis_calc.o"
 --strict --scatter "frame\frame.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
