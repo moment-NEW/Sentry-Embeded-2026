@@ -14,7 +14,7 @@ frame/app_chassis_task.o: ..\Task\app_chassis_task.c \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
-  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
+  ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
   ..\..\Sentry-Embeded-2026\robot_config.h \
   ..\Sentry_libs\Bsp\Can\bsp_can.h ..\Core\Inc\can.h ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
@@ -49,6 +49,7 @@ frame/app_chassis_task.o: ..\Task\app_chassis_task.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h \
   ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
+  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
   ..\Sentry_libs\Algorithm\Chassis_calc\alg_chassis_calc.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h

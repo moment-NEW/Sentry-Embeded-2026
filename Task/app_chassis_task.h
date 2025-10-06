@@ -3,6 +3,8 @@
 
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
+
+#include "dev_motor_dm.h"
 #include "dev_motor_dji.h"
 
 
