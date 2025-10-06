@@ -1,0 +1,126 @@
+/**
+ * @file app_shooter_task.c
+ * @author CGH
+ * @brief 射击任务
+ * 
+ */
+
+#include "app_shooter_task.h"
+
+
+//实例声明
+DjiMotorInstance_s *Left_Wheel;
+DjiMotorInstance_s *Right_Wheel;
+DjiMotorInitConfig_s Left_Config;
+DjiMotorInitConfig_s Right_Config;
+
+DjiMotorInstance_s *Trigger;
+DjiMotorInitConfig_s Trigger_Config;
+
+//变量声明
+
+float target_speed=0.0;//后续改为上位机提供
+float trigger_position=0.0;
+
+////////////////////////////电机配置/////////////////////////////////////////
+static  DjiMotorInitConfig_s Left_Config = {
+    .id = 3,                      // 电机ID(1~4)
+    .type = M3508,               // 电机类型
+    .control_mode = DJI_VELOCITY,  // 电机控制模式
+		.topic_name = "up_yaw",
+    .can_config = {
+        .can_number = 1,
+				.topic_name = "up_yaw",              // can句柄
+        .tx_id = 0x1FE,                     // 发送id 
+        .rx_id = 0x207,                     // 接收id
+    },
+    .reduction_ratio = 1,              // 减速比
+
+    .angle_pid_config = {
+        .kp = 0.0,                        // 位置环比例系数
+        .ki = 0.0,                        // 位置环积分系数
+        .kd = 0.0,                        // 位置环微分系数
+        .kf = 0.0,                        // 前馈系数
+        .angle_max = 2.0f * PI,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 100.0,                   // 积分限幅
+        .out_max = 400.0,                 // 输出限幅(速度环输入)
+    },
+    .velocity_pid_config = {
+        .kp = 0.0,                       // 速度环比例系数
+        .ki = 0.0,                        // 速度环积分系数
+        .kd = 0.0,                        // 速度环微分系数
+        .kf = 0.0,                        // 前馈系数
+        .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 1000.0,                  // 积分限幅
+        .out_max = 2000.0,                // 输出限幅(电流输出)
+    }
+};
+static  DjiMotorInitConfig_s Right_Config = {
+    .id = 3,                      // 电机ID(1~4)
+    .type = M3508,               // 电机类型
+    .control_mode = DJI_VELOCITY,  // 电机控制模式
+		.topic_name = "up_yaw",
+    .can_config = {
+        .can_number = 1,
+				.topic_name = "up_yaw",              // can句柄
+        .tx_id = 0x1FE,                     // 发送id 
+        .rx_id = 0x207,                     // 接收id
+    },
+    .reduction_ratio = 1,              // 减速比
+
+    .angle_pid_config = {
+        .kp = 0.0,                        // 位置环比例系数
+        .ki = 0.0,                        // 位置环积分系数
+        .kd = 0.0,                        // 位置环微分系数
+        .kf = 0.0,                        // 前馈系数
+        .angle_max = 2.0f * PI,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 100.0,                   // 积分限幅
+        .out_max = 400.0,                 // 输出限幅(速度环输入)
+    },
+    .velocity_pid_config = {
+        .kp = 0.0,                       // 速度环比例系数
+        .ki = 0.0,                        // 速度环积分系数
+        .kd = 0.0,                        // 速度环微分系数
+        .kf = 0.0,                        // 前馈系数
+        .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 1000.0,                  // 积分限幅
+        .out_max = 2000.0,                // 输出限幅(电流输出)
+    }
+};
+
+
+
+
+
+static  DjiMotorInitConfig_s Trigger_Config = {
+    .id = 3,                      // 电机ID(1~4)
+    .type = M2006,               // 电机类型
+    .control_mode = DJI_VELOCITY,  // 电机控制模式
+		.topic_name = "up_yaw",
+    .can_config = {
+        .can_number = 1,
+				.topic_name = "up_yaw",              // can句柄
+        .tx_id = 0x1FE,                     // 发送id 
+        .rx_id = 0x207,                     // 接收id
+    },
+    .reduction_ratio = 1,              // 减速比
+
+    .angle_pid_config = {
+        .kp = 0.0,                        // 位置环比例系数
+        .ki = 0.0,                        // 位置环积分系数
+        .kd = 0.0,                        // 位置环微分系数
+        .kf = 0.0,                        // 前馈系数
+        .angle_max = 2.0f * PI,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 100.0,                   // 积分限幅
+        .out_max = 400.0,                 // 输出限幅(速度环输入)
+    },
+    .velocity_pid_config = {
+        .kp = 0.0,                       // 速度环比例系数
+        .ki = 0.0,                        // 速度环积分系数
+        .kd = 0.0,                        // 速度环微分系数
+        .kf = 0.0,                        // 前馈系数
+        .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 1000.0,                  // 积分限幅
+        .out_max = 2000.0,                // 输出限幅(电流输出)
+    }
+};
