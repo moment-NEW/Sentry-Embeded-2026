@@ -50,7 +50,7 @@
 osThreadId defaultTaskHandle;
 osThreadId IsttaskHandle;
 osThreadId Chassis_taskHandle;
-osThreadId GimbalTaskHandle;
+osThreadId CommandTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -60,7 +60,7 @@ osThreadId GimbalTaskHandle;
 void StartDefaultTask(void const * argument);
 void isttask(void const * argument);
 void StartChassisTask(void const * argument);
-void StartGimbalTask(void const * argument);
+void StartCommandTask(void const * argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -153,9 +153,9 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(Chassis_task, StartChassisTask, osPriorityIdle, 0, 512);
   Chassis_taskHandle = osThreadCreate(osThread(Chassis_task), NULL);
 
-  /* definition and creation of GimbalTask */
-  osThreadDef(GimbalTask, StartGimbalTask, osPriorityIdle, 0, 512);
-  GimbalTaskHandle = osThreadCreate(osThread(GimbalTask), NULL);
+  /* definition and creation of CommandTask */
+  osThreadDef(CommandTask, StartCommandTask, osPriorityIdle, 0, 512);
+  CommandTaskHandle = osThreadCreate(osThread(CommandTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -219,22 +219,22 @@ __weak void StartChassisTask(void const * argument)
   /* USER CODE END StartChassisTask */
 }
 
-/* USER CODE BEGIN Header_StartGimbalTask */
+/* USER CODE BEGIN Header_StartCommandTask */
 /**
-* @brief Function implementing the GimbalTask thread.
+* @brief Function implementing the CommandTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartGimbalTask */
-__weak void StartGimbalTask(void const * argument)
+/* USER CODE END Header_StartCommandTask */
+__weak void StartCommandTask(void const * argument)
 {
-  /* USER CODE BEGIN StartGimbalTask */
+  /* USER CODE BEGIN StartCommandTask */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartGimbalTask */
+  /* USER CODE END StartCommandTask */
 }
 
 /* Private application code --------------------------------------------------*/

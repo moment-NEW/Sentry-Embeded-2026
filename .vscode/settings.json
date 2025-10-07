@@ -57,6 +57,11 @@
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
-    "alg_chassis_calc.h": "c"
+    "alg_chassis_calc.h": "c",
+    "dev_dr16.h": "c",
+    "task.h": "c",
+    "freertos.h": "c",
+    "cmsis_os.h": "c",
+    "dev_minipc.h": "c"
   }
 }

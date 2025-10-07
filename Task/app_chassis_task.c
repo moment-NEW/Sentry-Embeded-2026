@@ -7,15 +7,26 @@
  */
 #include "app_chassis_task.h"
 //宏定义
-
+#define DEBUG
 
 
 //实例声明
 ChassisInstance_s *Chassis;
 DmMotorInstance_s *Down_yaw;
+Subscriber *CH_Subs;
+Dr16Instance_s* CH_Receive_s;
 //变量声明
+#ifndef DEBUG
+uint8_t controlmode=DISABLE_MODE;
+float target_position=0.0;//后续改为上位机提供
+float target_up_position=0.0;
+#else
+
+float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0;
+float target_up_position=0.0;
+#endif
 uint8_t control_mode=RC_MODE;//默认遥控器模式
-float target_position=0.0;
+
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
@@ -162,6 +173,7 @@ static ChassisInitConfig_s Chassis_config={
 void StartChassisTask(void const * argument)
 {
   /* USER CODE BEGIN StartChassisTask */
+	CH_Subs=Create_Subscriber("dr16_topic",sizeof(Dr16Instance_s));
   Chassis = Chassis_Register(&Chassis_config);
     if (Chassis == NULL) {
         Log_Error("Chassis Register Failed!");
@@ -181,6 +193,11 @@ void StartChassisTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+		#ifdef DEBUG
+		test_speed=Down_yaw->message.out_velocity;
+		test_position=Down_yaw->message.out_position;
+		
+		#endif
     switch (control_mode)
     {
     case PC_MODE:
@@ -188,6 +205,7 @@ void StartChassisTask(void const * argument)
         break;
     case RC_MODE:
         /* code */
+				Get_Message(CH_Subs,CH_Receive_s);
         Chassis_Mode_Choose(Chassis, CHASSIS_NORMAL);
 				Motor_Dm_Control(Down_yaw,target_position);
 				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
