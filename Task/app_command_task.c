@@ -19,7 +19,7 @@ void StartCommandTask(void const * argument)
 {
   /* USER CODE BEGIN StartCommandTask */
 	dr16_instance = Dr16_Register(&huart3); // 注册遥控器实例
-	Command_publisher=Create_Publisher("dr16_topic",sizeof(dr16_instance));
+	Command_publisher=Create_Publisher("dr16_topic",sizeof(Dr16Instance_s));
   /* Infinite loop */
   for(;;)
   {

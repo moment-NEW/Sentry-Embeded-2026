@@ -7,6 +7,7 @@
 #include "dev_bmi088.h"
 #include "string.h"
 #include "FreeRTOS.h"
+#include "cmsis_os.h"
 #include "bsp_dwt.h"
 #define BMI088_GYRO_2000_SEN        0.00106526443603169529841533860381f  // 2000°/s
 #include "math.h"  // 添加数学函数支持
@@ -473,7 +474,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
         return false;
     }
     // 延时等待复位完成
-    for (volatile int i = 0; i < 100000; i++); // 简单延时
+   Dwt_Delay(2);
 		
      // 配置加速度计工作模式为活跃模式
     if (!BMI088_AccelWrite(instance->spi_acc, 0x7C, 0x00)) {
@@ -488,7 +489,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
 
     // 校验电源模式配置
     uint8_t power_mode = 0;
-    Dwt_Delay(1); // 等待配置生效
+    Dwt_Delay(0.5); // 等待配置生效
     if (!BMI088_AccelRead(instance->spi_acc, 0x7D, &power_mode, 1) ) {
         return false; // 电源模式配置校验失败
     }
@@ -500,7 +501,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
 
     // 校验工作模式配置
     uint8_t acc_conf = 0;
-    Dwt_Delay(1); // 等待配置生效
+    Dwt_Delay(0.5); // 等待配置生效
     if (!BMI088_AccelRead(instance->spi_acc, 0x40, &acc_conf, 1) || acc_conf != 0xAB) {
         return false; // 工作模式配置校验失败
     }
@@ -511,7 +512,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
     }
     // 校验量程配置
     uint8_t acc_range = 0;
-    Dwt_Delay(1); // 等待配置生效
+    Dwt_Delay(0.5); // 等待配置生效
     if (!BMI088_AccelRead(instance->spi_acc, 0x41, &acc_range, 1) || acc_range != 0x01) {
         return false; // 量程配置校验失败
     }
@@ -652,10 +653,10 @@ Bmi088Instance_s* Bmi088_Register(Bmi088InitConfig_s *bmi088_cfg){
     bmi088_ins->cali_offset = bmi088_cfg->enable_calibration;
 
     // 循环直到超时或者注册成功
-    while(Bmi088_Init(bmi088_ins) != true && time < 100) {
-        time++;
+    while(Bmi088_Init(bmi088_ins) != true ) {
+        
         // 添加延时避免过快重试
-        // HAL_Delay(10); 
+				Dwt_Delay(0.1);
     }
     if (time >= 100) {
         // 初始化超时，释放内存

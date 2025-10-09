@@ -174,6 +174,7 @@ void StartChassisTask(void const * argument)
 {
   /* USER CODE BEGIN StartChassisTask */
 	CH_Subs=Create_Subscriber("dr16_topic",sizeof(Dr16Instance_s));
+  CH_Receive_s = (Dr16Instance_s*)pvPortMalloc(sizeof(Dr16Instance_s)); // 为指针分配内存
   Chassis = Chassis_Register(&Chassis_config);
     if (Chassis == NULL) {
         Log_Error("Chassis Register Failed!");

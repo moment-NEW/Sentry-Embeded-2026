@@ -1,4 +1,5 @@
-frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
+frame/bsp_dwt.o: ..\Sentry_libs\Bsp\DWT\bsp_dwt.c \
+  ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
   ..\Core\Inc\stm32f4xx_hal_conf.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h \
@@ -43,21 +44,4 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\timers.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
-  ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
-  ..\Core\Inc\can.h ..\Core\Inc\dma.h ..\Core\Inc\i2c.h \
-  ..\Core\Inc\spi.h ..\Core\Inc\tim.h ..\Core\Inc\usart.h \
-  ..\USB_DEVICE\App\usb_device.h \
-  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_def.h \
-  ..\USB_DEVICE\Target\usbd_conf.h ..\Core\Inc\gpio.h \
-  ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Task\app_gimbal_task.h \
-  ..\..\Sentry-Embeded-2026\robot_config.h \
-  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
-  ..\Sentry_libs\Module\Dr16\dev_dr16.h \
-  ..\Sentry_libs\Bsp\Uart\bsp_uart.h \
-  ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
-  ..\Sentry_libs\Bsp\Can\bsp_can.h \
-  ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
-  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
-  ..\Sentry_libs\Module\Com_System\Com_System.h \
-  ..\Sentry_libs\Module\Com_System\Queue.h
+  ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h
