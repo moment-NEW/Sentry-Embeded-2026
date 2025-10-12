@@ -210,7 +210,7 @@ void isttask(void const * argument)
                 Quater.Acc.A_x = filtered_accel[0];
                 Quater.Acc.A_y = filtered_accel[1];
                 Quater.Acc.A_z = filtered_accel[2];
-				
+				///////////测试代码开始///////////////
                 test=Quater.yaw;//测试代码记得删除
 								if(lasttime<7){
 									lasttime+=dt;
@@ -219,12 +219,13 @@ void isttask(void const * argument)
 									 flag=-1;
             
         }
+							////////////测试代码结束//////////////
                 // 可选：备用的四元数积分方法（用于对比或故障恢复）
                 // caculate_angle(filtered_gyro, current_quaternion, current_quaternion, dt);
             }
         }
         
-        // 读取磁力计数据（原有功能保留）
+        // 读取磁力计数据
         //IstRead_mem(asdf, test_data);
         
         // 调试输出 - 每1000次循环输出一次

@@ -15,6 +15,7 @@
 #include "bsp_can.h"
 #include "bsp_log.h"
 
+#include "app_command_task.h"
 
 //宏定义
 #define PC_MODE 1

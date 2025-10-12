@@ -21,7 +21,7 @@ uint8_t controlmode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
-
+extern uint8_t mode;
 float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0;
 float target_up_position=0.0;
 #endif
@@ -199,6 +199,8 @@ void StartChassisTask(void const * argument)
 		test_position=Down_yaw->message.out_position;
 		
 		#endif
+		Get_Message(CH_Subs,CH_Receive_s);
+		control_mode=mode;
     switch (control_mode)
     {
     case PC_MODE:
@@ -206,8 +208,12 @@ void StartChassisTask(void const * argument)
         break;
     case RC_MODE:
         /* code */
-				Get_Message(CH_Subs,CH_Receive_s);
+				
         Chassis_Mode_Choose(Chassis, CHASSIS_NORMAL);
+				Chassis->gimbal_yaw_angle=Down_yaw->target_position;
+				Chassis->absolute_chassis_speed.Vx=CH_Receive_s->dr16_handle.ch2/132.0f;
+				Chassis->absolute_chassis_speed.Vy=CH_Receive_s->dr16_handle.ch3/132.0f;
+				Chassis_Control(Chassis);
 				Motor_Dm_Control(Down_yaw,target_position);
 				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
 				Motor_Dm_Transmit(Down_yaw);
