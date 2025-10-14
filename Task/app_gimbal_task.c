@@ -84,7 +84,7 @@ static DmMotorInitConfig_s pitch_config = {
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 0.0,
+        .kp = 10.0,
         .ki = 0.0,
         .kd = 0.0,
         .kf = 0.0,
@@ -93,8 +93,8 @@ static DmMotorInitConfig_s pitch_config = {
         .out_max = 400.0,
     },
     .velocity_pid_config = {
-        .kp = 0.0,
-        .ki = 0.0,
+        .kp = 0.8,
+        .ki = 0.001,
         .kd = 0.0,
         .kf = 0.0,
         .angle_max = 0,
@@ -135,7 +135,26 @@ static  DjiMotorInitConfig_s Up_config = {
     }
 };
 
+//限幅0.17-0
+//速度：0.8，0.001，角度：10
+////////测试用代码///////////
+#ifdef DEBUG
+float G_Caculate(float position,float start,float end){
+	static uint8_t Flag=0;
+	static float record= 0;
+	if(Flag==0){
+	record=start;
+	Flag=1;
+	}
+	float dt = start-end/20;
+	if(Flag==1&&position-record<0.001&&position-record>-0.001){
+		record+=dt;
+	}
+	
+	return record;
 
+}
+#endif
 void StartGimbalTask(void const * argument)
 {
     Down_yaw=Motor_DM_Register(&Down_config);//8006
@@ -179,6 +198,9 @@ void StartGimbalTask(void const * argument)
 //        Motor_Dm_Mit_Control(Down_yaw,0,0,Down_yaw->output);
 //				Motor_Dm_Transmit(Down_yaw);
 			//Pitch轴
+			//限幅
+			target_position=target_position>0.17?0.17:target_position;
+			target_position=target_position<0.0?0.0:target_position;
 					Motor_Dm_Control(pitch,target_position);
           Motor_Dm_Mit_Control(pitch,0,0,pitch->output);
 				  Motor_Dm_Transmit(pitch);

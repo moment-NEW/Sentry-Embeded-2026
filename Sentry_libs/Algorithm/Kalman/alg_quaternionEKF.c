@@ -70,10 +70,15 @@ void IMU_QuaternionEKF_Init(float* init_quaternion,float process_noise1, float p
     Matrix_Init(&QEKF_INS.ChiSquare, 1, 1, (float *)QEKF_INS.ChiSquare_Data);
 
     // 姿态初始化
-    for(int i = 0; i < 4; i++)
-    {
-        QEKF_INS.IMU_QuaternionEKF.xhat_data[i] = init_quaternion[i];
-    }
+//    for(int i = 0; i < 4; i++)
+//    {
+//        QEKF_INS.IMU_QuaternionEKF.xhat_data[i] = init_quaternion[i];
+//    }
+		 // 姿态初始化
+    QEKF_INS.IMU_QuaternionEKF.xhat_data[0] = 1;
+    QEKF_INS.IMU_QuaternionEKF.xhat_data[1] = 0;
+    QEKF_INS.IMU_QuaternionEKF.xhat_data[2] = 0;
+    QEKF_INS.IMU_QuaternionEKF.xhat_data[3] = 0;
 
     // 自定义函数初始化,用于扩展或增加kf的基础功能
     QEKF_INS.IMU_QuaternionEKF.User_Func0_f = IMU_QuaternionEKF_Observe;
