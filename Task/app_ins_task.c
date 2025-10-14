@@ -18,7 +18,33 @@
 PidInstance_s *ins_pid;
 uint8_t test_data[5]={0,0,0,0,0};
 quaternions_struct_t Quater;//四元数
+Bmi088Instance_s *bmi088_test;
 
+  Bmi088InitConfig_s bmi088_config = {
+    .spi_acc_config = {
+        .spi_handle = &hspi1,                    // SPI句柄
+        .GPIOx = GPIOA,                          // 加速度计CS引脚端口
+        .cs_pin = GPIO_PIN_4,                    // 加速度计CS引脚
+        .spi_work_mode = SPI_BLOCKING_MODE,            // 阻塞模式
+        .spi_module_callback = Bmi088_Callback,  // SPI回调函数
+        .id = NULL,                              // 父模块指针（将在注册时设置）
+        .tx_len = 8,                             // 发送缓冲区长度
+        .rx_len = 8,                             // 接收缓冲区长度
+    },
+    .spi_gyro_config = {
+        .spi_handle = &hspi1,                    // SPI句柄
+        .GPIOx = GPIOB,                          // 陀螺仪CS引脚端口
+        .cs_pin = GPIO_PIN_0,                    // 陀螺仪CS引脚
+        .spi_work_mode = SPI_BLOCKING_MODE,            // 中断模式
+        .spi_module_callback = Bmi088_Callback,  // SPI回调函数
+        .id = NULL,                              // 父模块指针（将在注册时设置）
+        .tx_len = 8,                             // 发送缓冲区长度
+        .rx_len = 8,                             // 接收缓冲区长度
+    },
+    
+    // 校准配置
+    .enable_calibration = 1,                     // 启用零偏校准（1: 启用, 0: 禁用）
+  };
 
 // 温度控制PID配置
 PidInitConfig_s temp_pid_config = {
@@ -62,11 +88,14 @@ void isttask(void const * argument)
   /* USER CODE BEGIN isttask */
     
     // 声明外部BMI088实例和遥控器实例
-    extern Bmi088Instance_s *bmi088_test;
-    extern RC_instance *rc_instance_s;
     
-    // 注册遥控器实例（从freertos.c移过来）
-    rc_instance_s = Remote_Register();
+    bmi088_test = Bmi088_Register(&bmi088_config);  
+  
+  // 检查注册是否成功
+  if (bmi088_test == NULL) {
+    // BMI088注册失败，可以添加错误处理
+    Error_Handler();
+  }
     
     
     
@@ -181,7 +210,7 @@ void isttask(void const * argument)
                 Quater.Acc.A_x = filtered_accel[0];
                 Quater.Acc.A_y = filtered_accel[1];
                 Quater.Acc.A_z = filtered_accel[2];
-				
+				///////////测试代码开始///////////////
                 test=Quater.yaw;//测试代码记得删除
 								if(lasttime<7){
 									lasttime+=dt;
@@ -190,12 +219,13 @@ void isttask(void const * argument)
 									 flag=-1;
             
         }
+							////////////测试代码结束//////////////
                 // 可选：备用的四元数积分方法（用于对比或故障恢复）
                 // caculate_angle(filtered_gyro, current_quaternion, current_quaternion, dt);
             }
         }
         
-        // 读取磁力计数据（原有功能保留）
+        // 读取磁力计数据
         //IstRead_mem(asdf, test_data);
         
         // 调试输出 - 每1000次循环输出一次

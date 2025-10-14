@@ -62,6 +62,7 @@
     "task.h": "c",
     "freertos.h": "c",
     "cmsis_os.h": "c",
-    "dev_minipc.h": "c"
+    "dev_minipc.h": "c",
+    "app_command_task.h": "c"
   }
 }

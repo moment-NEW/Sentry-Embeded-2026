@@ -30,6 +30,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "bsp_dwt.h"
 #include "app_gimbal_task.h"
 #include "bsp_log.h"
 #include "bsp_can.h"
@@ -53,6 +54,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
 
 /* USER CODE END PV */
 
@@ -108,7 +110,9 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-  Log_Init();
+	Log_Init();
+	DWT_Init(168);
+  
 //  Can_Init();
   /* USER CODE END 2 */
 

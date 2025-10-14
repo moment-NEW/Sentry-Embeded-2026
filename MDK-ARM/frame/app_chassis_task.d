@@ -56,4 +56,5 @@ frame/app_chassis_task.o: ..\Task\app_chassis_task.c \
   ..\Sentry_libs\Module\Com_System\Queue.h \
   ..\Sentry_libs\Algorithm\Chassis_calc\alg_chassis_calc.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h
+  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h ..\Task\app_command_task.h \
+  ..\Sentry_libs\Module\Minipc\dev_minipc.h
