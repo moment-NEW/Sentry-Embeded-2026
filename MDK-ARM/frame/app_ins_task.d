@@ -1,4 +1,6 @@
-frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
+frame/app_ins_task.o: ..\Task\app_ins_task.c ..\Task\app_ins_task.h \
+  ..\Sentry_libs\Module\Ist8310\dev_ist_8310.h \
+  ..\Sentry_libs\Bsp\I2c\bsp_iic.h ..\Core\Inc\i2c.h ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
   ..\Core\Inc\stm32f4xx_hal_conf.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h \
@@ -30,7 +32,7 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h \
-  ..\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.h \
+  ..\Sentry_libs\Bsp\GPIO\bsp_gpio.h ..\Core\Inc\gpio.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\FreeRTOS.h \
   ..\Core\Inc\FreeRTOSConfig.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\projdefs.h \
@@ -40,24 +42,18 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\mpu_wrappers.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\task.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\list.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS\cmsis_os.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\timers.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
-  ..\Core\Inc\can.h ..\Core\Inc\dma.h ..\Core\Inc\i2c.h \
-  ..\Core\Inc\spi.h ..\Core\Inc\tim.h ..\Core\Inc\usart.h \
-  ..\USB_DEVICE\App\usb_device.h \
-  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_def.h \
-  ..\USB_DEVICE\Target\usbd_conf.h ..\Core\Inc\gpio.h \
-  ..\Task\app_gimbal_task.h ..\..\Sentry-Embeded-2026\robot_config.h \
-  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
-  ..\Sentry_libs\Module\Dr16\dev_dr16.h \
-  ..\Sentry_libs\Bsp\Uart\bsp_uart.h \
-  ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
-  ..\Sentry_libs\Bsp\Can\bsp_can.h \
+  ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
+  ..\Drivers\CMSIS\Include\cmsis_compiler.h \
+  ..\Sentry_libs\Algorithm\Kalman\alg_quaternionEKF.h \
+  ..\Sentry_libs\Algorithm\Kalman\kalman_filter.h \
   ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
-  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
-  ..\Sentry_libs\Module\Com_System\Com_System.h \
-  ..\Sentry_libs\Module\Com_System\Queue.h \
+  ..\Sentry_libs\Module\BMI088\dev_bmi088.h \
+  ..\Sentry_libs\Bsp\SPI\bsp_spi.h ..\Core\Inc\spi.h \
+  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
+  ..\Sentry_libs\Bsp\PWM\bsp_pwm.h ..\Core\Inc\tim.h \
   ..\Sentry_libs\Bsp\DWT\bsp_dwt.h

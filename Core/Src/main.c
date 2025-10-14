@@ -33,6 +33,7 @@
 #include "app_gimbal_task.h"
 #include "bsp_log.h"
 #include "bsp_can.h"
+#include "bsp_dwt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,6 +109,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+	DWT_Init(168);
   Log_Init();
 //  Can_Init();
   /* USER CODE END 2 */

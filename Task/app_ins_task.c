@@ -18,7 +18,33 @@
 PidInstance_s *ins_pid;
 uint8_t test_data[5]={0,0,0,0,0};
 quaternions_struct_t Quater;//四元数
+Bmi088Instance_s *bmi088_test;
 
+  Bmi088InitConfig_s bmi088_config = {
+    .spi_acc_config = {
+        .spi_handle = &hspi1,                    // SPI句柄
+        .GPIOx = GPIOA,                          // 加速度计CS引脚端口
+        .cs_pin = GPIO_PIN_4,                    // 加速度计CS引脚
+        .spi_work_mode = SPI_BLOCKING_MODE,            // 阻塞模式
+        .spi_module_callback = Bmi088_Callback,  // SPI回调函数
+        .id = NULL,                              // 父模块指针（将在注册时设置）
+        .tx_len = 8,                             // 发送缓冲区长度
+        .rx_len = 8,                             // 接收缓冲区长度
+    },
+    .spi_gyro_config = {
+        .spi_handle = &hspi1,                    // SPI句柄
+        .GPIOx = GPIOB,                          // 陀螺仪CS引脚端口
+        .cs_pin = GPIO_PIN_0,                    // 陀螺仪CS引脚
+        .spi_work_mode = SPI_BLOCKING_MODE,            // 中断模式
+        .spi_module_callback = Bmi088_Callback,  // SPI回调函数
+        .id = NULL,                              // 父模块指针（将在注册时设置）
+        .tx_len = 8,                             // 发送缓冲区长度
+        .rx_len = 8,                             // 接收缓冲区长度
+    },
+    
+    // 校准配置
+    .enable_calibration = 1,                     // 启用零偏校准（1: 启用, 0: 禁用）
+  };
 
 // 温度控制PID配置
 PidInitConfig_s temp_pid_config = {
@@ -50,6 +76,60 @@ PwmInitConfig_s pwm_config = {
 float test=0;
 
 //测试代码结束
+
+
+
+/**
+*@brief PWM测试用函数
+*
+*/
+void TIM_Set_PWM(TIM_HandleTypeDef *tim_pwmHandle, uint8_t Channel, uint16_t value)
+{
+    if (value > tim_pwmHandle->Instance->ARR)
+        value = tim_pwmHandle->Instance->ARR;
+
+    switch (Channel)
+    {
+    case TIM_CHANNEL_1:
+        tim_pwmHandle->Instance->CCR1 = value;
+        break;
+    case TIM_CHANNEL_2:
+        tim_pwmHandle->Instance->CCR2 = value;
+        break;
+    case TIM_CHANNEL_3:
+        tim_pwmHandle->Instance->CCR3 = value;
+        break;
+    case TIM_CHANNEL_4:
+        tim_pwmHandle->Instance->CCR4 = value;
+        break;
+    }
+}
+
+/**
+ * @brief 温度控制
+ * @note  此函数模仿 ins_task.c 的逻辑, 将PID计算和PWM设置封装在一起。
+ *        它使用 alg_pid.c 的PID实现。
+ */
+static void IMU_Temperature_Ctrl(PidInstance_s *pid, PwmInstance_s *pwm, float target_temp, float current_temp)
+{
+    if (pid == NULL || pwm == NULL) {
+        return;
+    }
+
+    // 温度控制PID计算
+    float pid_output = Pid_Calculate(pid, target_temp, current_temp);
+
+    // 将PID输出（0-20）转换为占空比（0.0-1.0）
+    float duty_ratio = pid_output / 20.0f;
+    
+    // 限制占空比范围
+    if (duty_ratio < 0.0f) duty_ratio = 0.0f;
+    if (duty_ratio > 1.0f) duty_ratio = 1.0f;
+
+    // 设置PWM占空比
+    Pwm_SetDutyRatio(pwm, duty_ratio);
+}
+
 /**
  * @brief 1khz运行的INS任务
  * @details 该任务用于处理惯性导航系统（INS）的数据，执行卡尔曼滤波和姿态估计等操作。
@@ -62,18 +142,21 @@ void isttask(void const * argument)
   /* USER CODE BEGIN isttask */
     
     // 声明外部BMI088实例和遥控器实例
-    extern Bmi088Instance_s *bmi088_test;
-    extern RC_instance *rc_instance_s;
     
-    // 注册遥控器实例（从freertos.c移过来）
-    rc_instance_s = Remote_Register();
+    bmi088_test = Bmi088_Register(&bmi088_config);  
+  
+  // 检查注册是否成功
+  if (bmi088_test == NULL) {
+    // BMI088注册失败，可以添加错误处理
+    Error_Handler();
+  }
     
     
     
     // 注册温度控制PID和PWM实例
     PidInstance_s *temp_pid = Pid_Register(&temp_pid_config);
     PwmInstance_s *heater_pwm = Pwm_Register(&pwm_config);
-    
+    HAL_TIM_PWM_Start(&htim10, TIM_CHANNEL_1);
     // 实例化滤波器配置
     FilterInitConfig_t filter_config = {
         .filter_size = 5,              // 5点滑动平均
@@ -138,18 +221,10 @@ void isttask(void const * argument)
             if (BMI088_ReadTemperature(bmi088_test->spi_acc, &temperature)) {
                 bmi088_test->temperature = temperature;
                 
-                // 温度控制PID计算
+                // 温度控制 - 仿照 ins_task.c 的调用方式
                 if (temp_pid != NULL && heater_pwm != NULL) {
                     float target_temp = 40.0f; // 目标温度40摄氏度
-                    float pid_output = Pid_Calculate(temp_pid, target_temp, temperature);
-                    
-                    // 将PID输出转换为占空比
-                    float duty_ratio = pid_output / 20.0f;
-                    if (duty_ratio < 0.0f) duty_ratio = 0.0f;
-                    if (duty_ratio > 1.0f) duty_ratio = 1.0f;
-                    
-                    // 设置PWM占空比
-                    Pwm_SetDutyRatio(heater_pwm, duty_ratio);
+                    IMU_Temperature_Ctrl(temp_pid, heater_pwm, target_temp, temperature);
                 }
             }
             
@@ -181,7 +256,7 @@ void isttask(void const * argument)
                 Quater.Acc.A_x = filtered_accel[0];
                 Quater.Acc.A_y = filtered_accel[1];
                 Quater.Acc.A_z = filtered_accel[2];
-				
+				///////////测试代码开始///////////////
                 test=Quater.yaw;//测试代码记得删除
 								if(lasttime<7){
 									lasttime+=dt;
@@ -190,12 +265,13 @@ void isttask(void const * argument)
 									 flag=-1;
             
         }
+							////////////测试代码结束//////////////
                 // 可选：备用的四元数积分方法（用于对比或故障恢复）
                 // caculate_angle(filtered_gyro, current_quaternion, current_quaternion, dt);
             }
         }
         
-        // 读取磁力计数据（原有功能保留）
+        // 读取磁力计数据
         //IstRead_mem(asdf, test_data);
         
         // 调试输出 - 每1000次循环输出一次
@@ -269,7 +345,8 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
       Error_Handler();
     };
     //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
+    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,0.9996,0);
+		//IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
     //初始化PID
   
     

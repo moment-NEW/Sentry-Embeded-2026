@@ -27,31 +27,27 @@ float a;
 //}
 
 
-// 最速控制综合函数 fhan()
-float fhan(float x1, float x2, float r, float h0) {
-     d = r * h0 * h0;
-     a0 = h0 * x2;
-     y = x1 + a0;
-     a1 = sqrtf(d * (d + 8 * fabsf(y)));
-     a2 = a0 + (y > 0 ? 1 : -1) * (a1 - d) / 2;
-     a = 0;
-
-    if (fabsf(y) > d) {
-        a = a2;
-    } else {
-        a = a0 + y / h0;
-    }
-
-    float fhan_output = 0;
-    if (fabsf(a) > d) {
-        fhan_output = -r * (a > 0 ? 1 : -1);
-    } else {
-        fhan_output = -r * a / d;
-    }
-
-    return fhan_output;
+// 限幅函数
+float float_constrain(float Value, float minValue, float maxValue)
+{
+    if (Value < minValue)
+        return minValue;
+    else if (Value > maxValue)
+        return maxValue;
+    else
+        return Value;
 }
 
+int float_rounding(float raw)
+{
+    static int integer;
+    static float decimal;
+    integer = (int)raw;
+    decimal = raw - integer;
+    if (decimal > 0.5f)
+        integer++;
+    return integer;
+}
 
 
 /**
