@@ -345,7 +345,7 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
       Error_Handler();
     };
     //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,0.9996,0);
+    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
 		//IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
     //初始化PID
   
