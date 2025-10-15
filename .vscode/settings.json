@@ -63,6 +63,7 @@
     "freertos.h": "c",
     "cmsis_os.h": "c",
     "dev_minipc.h": "c",
-    "app_command_task.h": "c"
+    "app_command_task.h": "c",
+    "dev_motor_dm.h": "c"
   }
 }

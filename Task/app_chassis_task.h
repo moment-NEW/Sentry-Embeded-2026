@@ -6,6 +6,8 @@
 
 #include "dev_motor_dm.h"
 #include "dev_motor_dji.h"
+
+#include "dev_minipc.h"
 #include "dev_dr16.h"
 #include "Com_System.h"
 

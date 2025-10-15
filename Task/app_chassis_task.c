@@ -15,6 +15,7 @@ ChassisInstance_s *Chassis;
 DmMotorInstance_s *Down_yaw;
 Subscriber *CH_Subs;
 Dr16Instance_s* CH_Receive_s;
+MiniPC_Instance *MiniPC;
 //变量声明
 #ifndef DEBUG
 uint8_t controlmode=DISABLE_MODE;
@@ -168,6 +169,13 @@ static ChassisInitConfig_s Chassis_config={
     }
 };
 
+MiniPC_Config miniPC_config = {
+    .callback = NULL,
+    .message_type = USB_MSG_CHASSIS_RX, // 自瞄数据
+    .Send_message_type = NULL // 发送数据类型
+};
+
+
 
 //主任务
 void StartChassisTask(void const * argument)
@@ -178,6 +186,10 @@ void StartChassisTask(void const * argument)
   Chassis = Chassis_Register(&Chassis_config);
     if (Chassis == NULL) {
         Log_Error("Chassis Register Failed!");
+    }
+  MiniPC = MiniPC_Register(&miniPC_config);
+    if (MiniPC == NULL) {
+        Log_Error("MiniPC Register Failed!");
     }
 	Down_yaw = Motor_DM_Register(&Down_config);
 		if (Down_yaw == NULL){
@@ -205,6 +217,12 @@ void StartChassisTask(void const * argument)
     {
     case PC_MODE:
         // Chassis->gimbal_yaw_angle
+        Chassis_Mode_Choose(Chassis, CHASSIS_NORMAL);
+        Chassis->gimbal_yaw_angle=Down_yaw->target_position;
+        Chassis->absolute_chassis_speed.Vx=MiniPC->message.ch_pack.x_speed;
+        Chassis->absolute_chassis_speed.Vy=MiniPC->message.ch_pack.y_speed;
+        // Down_yaw->target_position=MiniPC->message.ch_pack.yaw;
+        Chassis_Control(Chassis);
         break;
     case RC_MODE:
         /* code */
@@ -222,6 +240,9 @@ void StartChassisTask(void const * argument)
         /* code */
         break;
     case DISABLE_MODE:
+        Chassis_Mode_Choose(Chassis, CHASSIS_SLOW);
+        Chassis->absolute_chassis_speed.Vx=0.0f;
+        Chassis->absolute_chassis_speed.Vy=0.0f;
         
         break;
     default:
