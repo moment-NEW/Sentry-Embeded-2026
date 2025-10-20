@@ -11,10 +11,13 @@
 
 #include "dev_motor_dji.h"
 
-
-
-
-
+//状态枚举,
+typedef enum{
+  SHOOTER_STOP=0,
+  SHOOTER_START=1,
+  SHOOTER_FIRING=2,
+  SHOOTER_RELOAD=3
+} ShooterState_t;
 
 
 

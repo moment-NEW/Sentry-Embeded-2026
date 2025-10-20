@@ -54,7 +54,6 @@
 "frame\usbd_ctlreq.o"
 "frame\usbd_ioreq.o"
 "frame\usbd_cdc.o"
-"..\Middlewares\ST\ARM\DSP\Lib\arm_cortexM4lf_math.lib"
 "frame\bsp_can.o"
 "frame\bsp_fdcan.o"
 "frame\bsp_spi.o"
@@ -75,12 +74,14 @@
 "frame\dev_ist_8310.o"
 "frame\app_gimbal_task.o"
 "frame\app_ins_task.o"
+"frame\app_shooter_task.o"
 "frame\alg_pid.o"
 "frame\alg_fliter.o"
 "frame\alg_kalman.o"
 "frame\alg_quaternionekf.o"
 "frame\kalman.o"
 "frame\kalman_filter.o"
+"..\Middlewares\ST\ARM\DSP\Lib\arm_cortexM4lf_math.lib"
 --strict --scatter "frame\frame.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
