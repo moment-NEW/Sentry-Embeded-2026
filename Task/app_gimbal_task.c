@@ -18,9 +18,10 @@ float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
 uint8_t ControlMode= RC_MODE;
-float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0;
+float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_position=0.0;
 float target_pitch_position=0.0;
+float output=0;
 #endif
 ////////////////////////////电机配置/////////////////////////////////////////
 static DmMotorInitConfig_s Down_config = {
@@ -68,7 +69,7 @@ static DmMotorInitConfig_s pitch_config = {
 	.control_mode = DM_POSITION, // 位置控制模式
 		.topic_name = "pitch",
     .can_config = {
-        .can_number = 1,
+        .can_number = 2,
 				.topic_name = "pitch",
         .tx_id = 0x006,
         .rx_id = 0x016,
@@ -84,7 +85,7 @@ static DmMotorInitConfig_s pitch_config = {
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 10.0,
+        .kp = 25,
         .ki = 0.0,
         .kd = 0.0,
         .kf = 0.0,
@@ -93,8 +94,8 @@ static DmMotorInitConfig_s pitch_config = {
         .out_max = 400.0,
     },
     .velocity_pid_config = {
-        .kp = 0.8,
-        .ki = 0.001,
+        .kp = 0.85,
+        .ki = 0.0,
         .kd = 0.0,
         .kf = 0.0,
         .angle_max = 0,
@@ -137,22 +138,158 @@ static  DjiMotorInitConfig_s Up_config = {
 
 //限幅0.17-0
 //速度：0.8，0.001，角度：10
+/**
+* @brief 重力补偿用代码
+* @param position 电机当前位置
+*	@return float 输出力矩
+*/
+float G_feed(float position){
+    float torque = -21.321498 * sin(position + -1.625094) + -21.348101;
+    return torque;
+}
 ////////测试用代码///////////
 #ifdef DEBUG
-float G_Caculate(float position,float start,float end){
-	static uint8_t Flag=0;
-	static float record= 0;
-	if(Flag==0){
-	record=start;
-	Flag=1;
-	}
-	float dt = start-end/20;
-	if(Flag==1&&position-record<0.001&&position-record>-0.001){
-		record+=dt;
-	}
-	
-	return record;
+/**
+ * @brief 生成一个简单的斜坡轨迹，在start和end之间切分出若干个点，
+ *        每隔固定的时间间隔切换到下一个点。
+ * 
+ * @param start 轨迹的起始位置 (rad)。
+ * @param end 轨迹的结束位置 (rad)。
+ * @param steps 从start到end分的步数。
+ * @param interval_ms 切换到下一个点的时间间隔 (毫秒)。
+ * 
+ * @return float 当前应该对准的目标设定点 (rad)。
+ */
+float GenerateSimpleRampWithPause(float start, float end, int steps, uint32_t interval_ms)
+{
+    // --- 静态变量，用于在函数调用间保持状态 ---
+    static float target_setpoint = 0.0f; // 当前的目标设定点
+    static int current_step = 0;         // 当前所在的步数
+    static uint32_t last_update_time = 0; // 上次更新目标点的时间
 
+    // --- 静态变量，用于检测输入参数变化并重置 ---
+    static float static_start = -1.0f;
+    static float static_end = -1.0f;
+    static int static_steps = -1;
+
+    uint32_t current_time = osKernelSysTick(); // 获取当前系统时间
+
+    // 1. 初始化或重置
+    // 如果调用时 start, end 或 steps 的值变了，就重新初始化
+    if (start != static_start || end != static_end || steps != static_steps) {
+        target_setpoint = start;
+        current_step = 0;
+        last_update_time = current_time;
+
+        // 保存当前的参数，用于下次比较
+        static_start = start;
+        static_end = end;
+        static_steps = steps;
+    }
+
+    // 2. 检查是否到达更新时间
+    if (current_time - last_update_time >= interval_ms)
+    {
+        // 如果还没有到达最后一步
+        if (current_step < steps)
+        {
+            current_step++; // 移动到下一步
+            last_update_time = current_time; // 更新时间戳
+        }
+    }
+    
+    // 3. 计算当前的目标设定点
+    if (steps > 0) {
+        target_setpoint = start + (end - start) * ((float)current_step / (float)steps);
+    } else {
+        target_setpoint = start; // 如果步数为0，则目标点始终为起点
+    }
+
+    // 确保最终目标点不会超过终点
+    if ((end > start && target_setpoint > end) || (end < start && target_setpoint < end)) {
+        target_setpoint = end;
+    }
+
+    // 4. 返回当前计算出的目标值
+    return target_setpoint;
+}
+/**
+ * @brief 生成一个在端点暂停并自动往复的斜坡信号。
+ *        此版本基于时间间隔进行更新。
+ * 
+ * @param min_pos       运动区间的最小值
+ * @param max_pos       运动区间的最大值
+ * @param steps         从一端到另一端所需的步数
+ * @param interval_ms   每一步之间的时间间隔 (毫秒)
+ * @param pause_ms      在端点暂停的时间 (毫秒)
+ * @return float        当前的目标设定点
+ */
+float GenerateReversingRamp(float min_pos, float max_pos, int steps, uint32_t interval_ms, uint32_t pause_ms)
+{
+    // --- 静态变量，用于在函数调用间保持状态 ---
+    static float target_setpoint = 0.0f;
+    static int current_step = 0;
+    static uint32_t last_update_time = 0;
+    static char is_forward_trip = 1; // 1: min->max, 0: max->min
+    static char is_paused = 0;       // 1: 正在暂停, 0: 正在运动
+
+    // --- 用于初始化的静态变量 ---
+    static int initialized = 0;
+    uint32_t current_time = osKernelSysTick();
+
+    // 1. 仅在第一次调用时进行初始化
+    if (!initialized) {
+        target_setpoint = min_pos;
+        current_step = 0;
+        is_forward_trip = 1;
+        is_paused = 0;
+        last_update_time = current_time;
+        initialized = 1;
+    }
+
+    // 2. 状态机逻辑
+    if (is_paused) // 如果当前处于暂停状态
+    {
+        if (current_time - last_update_time >= pause_ms)
+        {
+            // 暂停结束，准备“掉头”
+            is_forward_trip = !is_forward_trip; // 切换方向
+            current_step = 0;                   // 重置步数
+            is_paused = 0;                      // 退出暂停状态
+            last_update_time = current_time;    // 更新时间戳，开始新的运动
+        }
+    }
+    else // 如果当前处于运动状态
+    {
+        if (current_time - last_update_time >= interval_ms)
+        {
+            if (current_step < steps)
+            {
+                current_step++; // 移动到下一步
+                last_update_time = current_time;
+            }
+            
+            if (current_step >= steps)
+            {
+                // 到达端点，开始暂停
+                is_paused = 1;
+                last_update_time = current_time; // 重置暂停计时器
+            }
+        }
+    }
+
+    // 3. 根据当前状态计算目标点
+    float start_pos = is_forward_trip ? min_pos : max_pos;
+    float end_pos = is_forward_trip ? max_pos : min_pos;
+
+    if (steps > 0) {
+        target_setpoint = start_pos + (end_pos - start_pos) * ((float)current_step / (float)steps);
+    } else {
+        target_setpoint = start_pos;
+    }
+
+    // 4. 返回当前计算出的目标值
+    return target_setpoint;
 }
 #endif
 void StartGimbalTask(void const * argument)
@@ -199,11 +336,29 @@ void StartGimbalTask(void const * argument)
 //				Motor_Dm_Transmit(Down_yaw);
 			//Pitch轴
 			//限幅
-			target_position=target_position>0.17?0.17:target_position;
-			target_position=target_position<0.0?0.0:target_position;
-					Motor_Dm_Control(pitch,target_position);
-          Motor_Dm_Mit_Control(pitch,0,0,pitch->output);
-				  Motor_Dm_Transmit(pitch);
+				#ifdef DEBUG
+
+
+            // 判断 pitch->message.out_position 与 0.17f 的差的绝对值是否大于容差
+       
+                target_position=GenerateReversingRamp(0, 0.17, 50, 1000, 2000); // 每步间隔25ms，端点暂停500ms
+            
+//			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
+			#endif
+			 target_position=target_position>0.17?0.17:target_position;
+			 target_position=target_position<0.0?0.0:target_position;
+				
+			 Motor_Dm_Control(pitch,target_position);
+//				if(0<pitch->message.out_position<0.17){
+//					output=pitch->output+G_feed(pitch->message.out_position);
+//				}
+       Motor_Dm_Mit_Control(pitch,0,0,pitch->output);
+				
+				
+				#ifdef DEBUG
+				test_output=pitch->output;
+			#endif
+			 Motor_Dm_Transmit(pitch);
 			
 			//大疆
 				Motor_Dji_Control(Up_yaw,target_up_position);

@@ -11,16 +11,15 @@
 //实例声明
 DjiMotorInstance_s *Left_Wheel;
 DjiMotorInstance_s *Right_Wheel;
-DjiMotorInitConfig_s Left_Config;
-DjiMotorInitConfig_s Right_Config;
+
 
 DjiMotorInstance_s *Trigger;
-DjiMotorInitConfig_s Trigger_Config;
+
 
 //变量声明
-
-float target_speed=0.0;//后续改为上位机提供
-float trigger_position=0.0;
+ShooterState_t Shooter_State;
+//float target_speed=0.0;//后续改为上位机提供
+//float trigger_position=0.0;
 
 ////////////////////////////电机配置/////////////////////////////////////////
 static  DjiMotorInitConfig_s Left_Config = {
@@ -100,10 +99,10 @@ static  DjiMotorInitConfig_s Trigger_Config = {
     .can_config = {
         .can_number = 1,
 				.topic_name = "up_yaw",              // can句柄
-        .tx_id = 0x1FE,                     // 发送id 
-        .rx_id = 0x207,                     // 接收id
+        .tx_id = 0x200,                     // 发送id 
+        .rx_id = 0x203,                     // 接收id
     },
-    .reduction_ratio = 1,              // 减速比
+    .reduction_ratio = 36,              // 减速比
 
     .angle_pid_config = {
         .kp = 0.0,                        // 位置环比例系数
@@ -124,3 +123,22 @@ static  DjiMotorInitConfig_s Trigger_Config = {
         .out_max = 2000.0,                // 输出限幅(电流输出)
     }
 };
+
+void StartShooterTask(void const * argument)
+{
+  /* USER CODE BEGIN StartShooterTask */
+	Trigger=Motor_Dji_Register(&Trigger_Config);
+	
+  /* Infinite loop */
+  for(;;)
+  { 
+    switch(Shooter_State){
+			default:
+				break;
+    }
+		Motor_Dji_Control(Trigger,0);
+		Motor_Dji_Transmit(Trigger);
+    osDelay(1);
+  }
+  /* USER CODE END StartShooterTask */
+}

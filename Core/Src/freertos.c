@@ -49,8 +49,8 @@
 /* USER CODE END Variables */
 osThreadId defaultTaskHandle;
 osThreadId IsttaskHandle;
-osThreadId Chassis_taskHandle;
-osThreadId GimbalTaskHandle;
+osThreadId Gimbal_TaskHandle;
+osThreadId ShooterTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -59,8 +59,8 @@ osThreadId GimbalTaskHandle;
 
 void StartDefaultTask(void const * argument);
 void isttask(void const * argument);
-void StartChassisTask(void const * argument);
 void StartGimbalTask(void const * argument);
+void StartShooterTask(void const * argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -149,13 +149,13 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(Isttask, isttask, osPriorityHigh, 0, 512);
   IsttaskHandle = osThreadCreate(osThread(Isttask), NULL);
 
-  /* definition and creation of Chassis_task */
-  osThreadDef(Chassis_task, StartChassisTask, osPriorityIdle, 0, 512);
-  Chassis_taskHandle = osThreadCreate(osThread(Chassis_task), NULL);
+  /* definition and creation of Gimbal_Task */
+  osThreadDef(Gimbal_Task, StartGimbalTask, osPriorityIdle, 0, 512);
+  Gimbal_TaskHandle = osThreadCreate(osThread(Gimbal_Task), NULL);
 
-  /* definition and creation of GimbalTask */
-  osThreadDef(GimbalTask, StartGimbalTask, osPriorityIdle, 0, 512);
-  GimbalTaskHandle = osThreadCreate(osThread(GimbalTask), NULL);
+  /* definition and creation of ShooterTask */
+  osThreadDef(ShooterTask, StartShooterTask, osPriorityIdle, 0, 512);
+  ShooterTaskHandle = osThreadCreate(osThread(ShooterTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -201,27 +201,9 @@ __weak void isttask(void const * argument)
   /* USER CODE END isttask */
 }
 
-/* USER CODE BEGIN Header_StartChassisTask */
-/**
-* @brief Function implementing the Chassis_task thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartChassisTask */
-__weak void StartChassisTask(void const * argument)
-{
-  /* USER CODE BEGIN StartChassisTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartChassisTask */
-}
-
 /* USER CODE BEGIN Header_StartGimbalTask */
 /**
-* @brief Function implementing the GimbalTask thread.
+* @brief Function implementing the Gimbal_Task thread.
 * @param argument: Not used
 * @retval None
 */
@@ -235,6 +217,24 @@ __weak void StartGimbalTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StartGimbalTask */
+}
+
+/* USER CODE BEGIN Header_StartShooterTask */
+/**
+* @brief Function implementing the ShooterTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartShooterTask */
+__weak void StartShooterTask(void const * argument)
+{
+  /* USER CODE BEGIN StartShooterTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartShooterTask */
 }
 
 /* Private application code --------------------------------------------------*/
