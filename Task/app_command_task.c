@@ -11,7 +11,7 @@ MiniPC_Instance *minipc_instance;
 Publisher *Command_publisher;
 
 //变量
-uint8_t mode=0;
+uint8_t mode=0,last_mode=0;
 //配置
 /**
  * @brief 根据遥控器的拨杆位置确定控制模式
@@ -19,7 +19,7 @@ uint8_t mode=0;
  * @return uint8_t 返回当前的控制模式
  */
 uint8_t Mode_Change(Dr16Instance_s *dr16){
-  uint8_t mode=0;//DISABLE_MODE
+  last_mode=mode;
 
    // 将s1的值左移4位，然后与s2的值进行'或'运算。
   // 这样s1占据高4位，s2占据低4位，形成一个唯一的8位状态值。
@@ -28,12 +28,14 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
   switch (combined_state)
   {
     case 0x11: // s1=1 (上), s2=1 (上)
-      mode = PC_MODE;
+      mode = last_mode==DISABLE_MODE?TRANS_MODE:PC_MODE;
 			return mode;
       break;
     
     case 0x13: // s1=1 (上), s2=3 (中)
-      mode = RC_MODE;
+      
+		mode = last_mode==DISABLE_MODE?TRANS_MODE:RC_MODE;
+			
 		return mode;
       break;
 
