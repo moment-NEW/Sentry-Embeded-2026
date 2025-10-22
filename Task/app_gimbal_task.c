@@ -85,7 +85,7 @@ static DmMotorInitConfig_s pitch_config = {
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 25,
+        .kp = 0.0,
         .ki = 0.0,
         .kd = 0.0,
         .kf = 0.0,
@@ -94,7 +94,7 @@ static DmMotorInitConfig_s pitch_config = {
         .out_max = 400.0,
     },
     .velocity_pid_config = {
-        .kp = 0.85,
+        .kp = 0.0,
         .ki = 0.0,
         .kd = 0.0,
         .kf = 0.0,
@@ -144,7 +144,9 @@ static  DjiMotorInitConfig_s Up_config = {
 *	@return float 输出力矩
 */
 float G_feed(float position){
-    float torque = -21.321498 * sin(position + -1.625094) + -21.348101;
+    //[354.533813, -99.411941, 7.604260, -0.441783]
+    // float torque = -21.321498 * sin(position + -1.625094) + -21.348101;
+    float torque = 354.533813*position*position*position + -99.411941*position*position + 7.604260*position + -0.441783;
     return torque;
 }
 ////////测试用代码///////////
@@ -341,7 +343,7 @@ void StartGimbalTask(void const * argument)
 
             // 判断 pitch->message.out_position 与 0.17f 的差的绝对值是否大于容差
        
-                target_position=GenerateReversingRamp(0, 0.17, 50, 1000, 2000); // 每步间隔25ms，端点暂停500ms
+                // target_position=GenerateReversingRamp(0, 0.17, 50, 1000, 2000); // 每步间隔25ms，端点暂停500ms
             
 //			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
 			#endif
@@ -349,10 +351,10 @@ void StartGimbalTask(void const * argument)
 			 target_position=target_position<0.0?0.0:target_position;
 				
 			 Motor_Dm_Control(pitch,target_position);
-//				if(0<pitch->message.out_position<0.17){
-//					output=pitch->output+G_feed(pitch->message.out_position);
-//				}
-       Motor_Dm_Mit_Control(pitch,0,0,pitch->output);
+				if(0<pitch->message.out_position<0.17){
+					output=pitch->output+G_feed(pitch->message.out_position);
+				}
+       Motor_Dm_Mit_Control(pitch,0,0,output);
 				
 				
 				#ifdef DEBUG
@@ -365,8 +367,8 @@ void StartGimbalTask(void const * argument)
 				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case DISABLE_MODE:
-				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
-				Motor_Dm_Transmit(Down_yaw);
+				Motor_Dm_Cmd(pitch,DM_CMD_MOTOR_DISABLE);
+				Motor_Dm_Transmit(pitch);
 				Motor_Dji_Control(Up_yaw,target_position);//暂时的逻辑
 			//其他同理
 			
@@ -374,8 +376,8 @@ void StartGimbalTask(void const * argument)
 				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case TRANS_MODE:
-	      Motor_Dm_Cmd(Down_yaw, DM_CMD_MOTOR_ENABLE);
-        Motor_Dm_Transmit(Down_yaw);
+	      Motor_Dm_Cmd(pitch, DM_CMD_MOTOR_ENABLE);
+        Motor_Dm_Transmit(pitch);
 				break;
 		}
 		
