@@ -41,8 +41,9 @@ static void Uart_RxCallback(UART_HandleTypeDef *huart) {
             if (uart_instance[i]->mode == UART_IT_MODE)
                 HAL_UART_Receive_IT(huart, uart_instance[i]->rx_buff, uart_instance[i]->rx_len);
             else if (uart_instance[i]->mode == UART_DMA_MODE)
-                HAL_UART_Receive_DMA(huart, uart_instance[i]->rx_buff, uart_instance[i]->rx_len);
 
+                HAL_UART_Receive_DMA(huart, uart_instance[i]->rx_buff, uart_instance[i]->rx_len);
+                //关闭IDLE中断
             break; // 找到后退出循环
         }
     }
