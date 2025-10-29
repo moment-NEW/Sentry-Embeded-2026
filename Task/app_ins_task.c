@@ -239,23 +239,22 @@ void isttask(void const * argument)
             // 姿态解算 - 使用EKF进行姿态融合更新
             if (ins_initialized) {
                 // 使用EKF进行高精度姿态解算（融合陀螺仪和加速度计数据）
-                IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
-                                        filtered_accel[0], filtered_accel[1], filtered_accel[2], dt);
-                
+                Mahony_update(bmi088_test->gyro[0],bmi088_test->gyro[1],bmi088_test->gyro[2],bmi088_test->accel[0],bmi088_test->accel[1],bmi088_test->accel[2],0,0,0);
+                 Mahony_computeAngles();
                 // 从EKF获取最优估计的四元数
-                current_quaternion[0] = QEKF_INS.q[0]; // w
-                current_quaternion[1] = QEKF_INS.q[1]; // x  
-                current_quaternion[2] = QEKF_INS.q[2]; // y
-                current_quaternion[3] = QEKF_INS.q[3]; // z
+//                current_quaternion[0] = QEKF_INS.q[0]; // w
+//                current_quaternion[1] = QEKF_INS.q[1]; // x  
+//                current_quaternion[2] = QEKF_INS.q[2]; // y
+//                current_quaternion[3] = QEKF_INS.q[3]; // z
                 
                 // 更新全局四元数结构体
-                Quater.roll = QEKF_INS.Roll;     // 横滚角（度）
-                Quater.pitch = QEKF_INS.Pitch;   // 俯仰角（度）
-                Quater.yaw = QEKF_INS.Yaw;   
+                Quater.roll = getRoll();     // 横滚角（度）
+                Quater.pitch = getPitch();   // 俯仰角（度）
+                Quater.yaw = getYaw();   
 								//-flag*(0.015*(bmi088_test->temperature-25)+1)*dt							// 偏航角（度）
-                Quater.Acc.A_x = filtered_accel[0];
-                Quater.Acc.A_y = filtered_accel[1];
-                Quater.Acc.A_z = filtered_accel[2];
+//							Quater.Acc.A_x = filtered_accel[0];
+//							Quater.Acc.A_y = filtered_accel[1];
+//							Quater.Acc.A_z = filtered_accel[2];
 				///////////测试代码开始///////////////
                 test=Quater.yaw;//测试代码记得删除
 								if(lasttime<7){
@@ -275,25 +274,25 @@ void isttask(void const * argument)
         //IstRead_mem(asdf, test_data);
         
         // 调试输出 - 每1000次循环输出一次
-        static uint32_t debug_counter = 0;
-        if (++debug_counter >= 1000) {
-            // 检查BMI088校准状态
-            uint8_t cali_status = BMI088_GetCalibrationStatus(bmi088_test);
-            
-            // 检查EKF是否收敛
-            if (get_ekf_status()) {
-                // EKF已收敛
-                if (!cali_status) {
-                    // 校准未完成，可能是问题所在
-                }
-            } else {
-                // EKF未收敛
-                if (!cali_status) {
-                    // 校准未完成可能导致EKF无法收敛
-                }
-            }
-            debug_counter = 0;
-        }
+//        static uint32_t debug_counter = 0;
+//        if (++debug_counter >= 1000) {
+//            // 检查BMI088校准状态
+//            uint8_t cali_status = BMI088_GetCalibrationStatus(bmi088_test);
+//            
+//            // 检查EKF是否收敛
+//            if (get_ekf_status()) {
+//                // EKF已收敛
+//                if (!cali_status) {
+//                    // 校准未完成，可能是问题所在
+//                }
+//            } else {
+//                // EKF未收敛
+//                if (!cali_status) {
+//                    // 校准未完成可能导致EKF无法收敛
+//                }
+//            }
+//            debug_counter = 0;
+//        }
         
         osDelay(1); // 1ms延时，保持1000Hz更新频率
   }
@@ -345,7 +344,8 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
       Error_Handler();
     };
     //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
+		Mahony_Init(1000);
+    MahonyAHRSinit(g0[0],g0[1],g0[2],0,0,0);
 		//IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0);
     //初始化PID
   

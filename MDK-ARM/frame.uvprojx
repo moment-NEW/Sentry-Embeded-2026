@@ -1004,6 +1004,16 @@
               <FileType>5</FileType>
               <FilePath>..\Sentry_libs\Algorithm\Kalman\kalman_filter.h</FilePath>
             </File>
+            <File>
+              <FileName>MahonyAHRS.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\Mahony\MahonyAHRS.c</FilePath>
+            </File>
+            <File>
+              <FileName>MahonyAHRS.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\Mahony\MahonyAHRS.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

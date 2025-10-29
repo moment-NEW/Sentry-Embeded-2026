@@ -2,18 +2,18 @@
 // Date			Author			Notes
 // 29/09/2011	SOH Madgwick    Initial release
 // 02/10/2011	SOH Madgwick	Optimised for reduced CPU load
-//ï¿½ï¿½ï¿½ï¿½aï¿½ï¿½ 2023/3/27 Ä§ï¿½ï¿½
+//¶ßÀ²aÃÎ 2023/3/27 Ä§¸Ä
 //-------------------------------------------------------------------------------------------
 // Header files
 
 #include "MahonyAHRS.h"
 
 
-   
+ 
 #include "arm_math.h"
 //-------------------------------------------------------------------------------------------
 // Definitions
-//ï¿½ï¿½ï¿½ï¶¼ï¿½Ç¿ï¿½ï¿½Ôµï¿½ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½
+//ÕâÀï¶¼ÊÇ¿ÉÒÔµ÷ÕûµÄ²ÎÊý
 //---------------------------------------***********************************
 float twoKi;		// 2 * integral gain (Ki)
 float q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
@@ -295,13 +295,15 @@ void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float
     q2 *= recipNorm;
     q3 *= recipNorm;
 }
-
+void arm_atan2_f32(float y, float x,uint16_t* data) {
+    *data=atan2f(y, x);
+}
 void Mahony_computeAngles()
 {
-	arm_atan2_f32(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2,&roll_mahony);
+	roll_mahony=atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
 	roll_mahony *= 57.29578f;  
 	pitch_mahony =57.29578f * asinf(-2.0f * (q1*q3 - q0*q2));
-	arm_atan2_f32(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3,&yaw_mahony); 
+	yaw_mahony=atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3); 
 	yaw_mahony *=57.29578f;
 	anglesComputed = 1;
 }
