@@ -8,7 +8,7 @@
 #define DEBUG
 
 //实例声明
-DmMotorInstance_s *Down_yaw;
+//此处做了修改，现在完全不关心下云台电机
 DmMotorInstance_s *pitch;
 DjiMotorInstance_s *Up_yaw;
 //变量声明
@@ -24,45 +24,7 @@ float target_pitch_position=0.0;
 float output=0;
 #endif
 ////////////////////////////电机配置/////////////////////////////////////////
-static DmMotorInitConfig_s Down_config = {
-    // .control_mode = DM_VELOCITY,    
-	.control_mode = DM_POSITION, // 位置控制模式
-		.topic_name = "down_yaw",
-    .can_config = {
-        .can_number = 1,
-				.topic_name = "down_yaw",
-        .tx_id = 0x009,
-        .rx_id = 0x019,
-        .can_module_callback = NULL,
-    },
-		.parameters = {
-        .pos_max = 3.141593f,    // [查手册] 电机最大位置范围 (弧度)
-        .vel_max = 45.0f,    // [查手册] 电机最大速度范围 (弧度/秒)
-        .tor_max = 18.0f,    // [查手册] 电机最大扭矩范围 (N·m)
-        .kp_max  = 500.0f,   // [查手册] Kp增益最大值
-        .kd_max  = 5.0f,     // [查手册] Kd增益最大值
-        .kp_int  = 0.0f,  // [调试设定] 要发送给电机的Kp值 (仅MIT模式)
-        .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
-    },
-    .angle_pid_config = {
-        .kp = 0.0,
-        .ki = 0.0,
-        .kd = 0.0,
-        .kf = 0.0,
-        .angle_max = 2.0f * PI,
-        .i_max = 100.0,
-        .out_max = 400.0,
-    },
-    .velocity_pid_config = {
-        .kp = 0.0,
-        .ki = 0.0,
-        .kd = 0.0,
-        .kf = 0.0,
-        .angle_max = 0,
-        .i_max = 1000.0,
-        .out_max = 2000.0,
-    }
-};
+
 
 static DmMotorInitConfig_s pitch_config = {
     // .control_mode = DM_VELOCITY,    
@@ -215,111 +177,26 @@ float GenerateSimpleRampWithPause(float start, float end, int steps, uint32_t in
     // 4. 返回当前计算出的目标值
     return target_setpoint;
 }
-/**
- * @brief 生成一个在端点暂停并自动往复的斜坡信号。
- *        此版本基于时间间隔进行更新。
- * 
- * @param min_pos       运动区间的最小值
- * @param max_pos       运动区间的最大值
- * @param steps         从一端到另一端所需的步数
- * @param interval_ms   每一步之间的时间间隔 (毫秒)
- * @param pause_ms      在端点暂停的时间 (毫秒)
- * @return float        当前的目标设定点
- */
-float GenerateReversingRamp(float min_pos, float max_pos, int steps, uint32_t interval_ms, uint32_t pause_ms)
-{
-    // --- 静态变量，用于在函数调用间保持状态 ---
-    static float target_setpoint = 0.0f;
-    static int current_step = 0;
-    static uint32_t last_update_time = 0;
-    static char is_forward_trip = 1; // 1: min->max, 0: max->min
-    static char is_paused = 0;       // 1: 正在暂停, 0: 正在运动
 
-    // --- 用于初始化的静态变量 ---
-    static int initialized = 0;
-    uint32_t current_time = osKernelSysTick();
-
-    // 1. 仅在第一次调用时进行初始化
-    if (!initialized) {
-        target_setpoint = min_pos;
-        current_step = 0;
-        is_forward_trip = 1;
-        is_paused = 0;
-        last_update_time = current_time;
-        initialized = 1;
-    }
-
-    // 2. 状态机逻辑
-    if (is_paused) // 如果当前处于暂停状态
-    {
-        if (current_time - last_update_time >= pause_ms)
-        {
-            // 暂停结束，准备“掉头”
-            is_forward_trip = !is_forward_trip; // 切换方向
-            current_step = 0;                   // 重置步数
-            is_paused = 0;                      // 退出暂停状态
-            last_update_time = current_time;    // 更新时间戳，开始新的运动
-        }
-    }
-    else // 如果当前处于运动状态
-    {
-        if (current_time - last_update_time >= interval_ms)
-        {
-            if (current_step < steps)
-            {
-                current_step++; // 移动到下一步
-                last_update_time = current_time;
-            }
-            
-            if (current_step >= steps)
-            {
-                // 到达端点，开始暂停
-                is_paused = 1;
-                last_update_time = current_time; // 重置暂停计时器
-            }
-        }
-    }
-
-    // 3. 根据当前状态计算目标点
-    float start_pos = is_forward_trip ? min_pos : max_pos;
-    float end_pos = is_forward_trip ? max_pos : min_pos;
-
-    if (steps > 0) {
-        target_setpoint = start_pos + (end_pos - start_pos) * ((float)current_step / (float)steps);
-    } else {
-        target_setpoint = start_pos;
-    }
-
-    // 4. 返回当前计算出的目标值
-    return target_setpoint;
-}
 #endif
 void StartGimbalTask(void const * argument)
 {
-    Down_yaw=Motor_DM_Register(&Down_config);//8006
-		pitch=Motor_DM_Register(&pitch_config);//4310
-		Up_yaw=Motor_Dji_Register(&Up_config);//6020
+    
+    pitch=Motor_DM_Register(&pitch_config);//4310
+    Up_yaw=Motor_Dji_Register(&Up_config);//6020
 		
-    if(Down_yaw==NULL)
-    {
-        Log_Error("Down_yaw motor register failed\r\n");
-        
-    }
+    
 		 if(Up_yaw==NULL)
     {
         Log_Error("Up_yaw motor register failed\r\n");
         
     }
-//    while (Down_yaw->motor_state!=DM_ENABLE)
-//    {
-//        Motor_Dm_Cmd(Down_yaw,  DM_CMD_MOTOR_ENABLE);
-//        Motor_Dm_Transmit(Down_yaw);
-//    }
+
 	   while (pitch->motor_state!=DM_ENABLE)
     {
         Motor_Dm_Cmd(pitch,  DM_CMD_MOTOR_ENABLE);
         Motor_Dm_Transmit(pitch);
-				osDelay(1);
+        osDelay(1);
     }
     Log_Information("pitch motor enable success\r\n");
  
@@ -335,16 +212,17 @@ void StartGimbalTask(void const * argument)
 			case RC_MODE:
 //				Motor_Dm_Control(Down_yaw,target_position);
 //        Motor_Dm_Mit_Control(Down_yaw,0,0,Down_yaw->output);
+
 //				Motor_Dm_Transmit(Down_yaw);
 			//Pitch轴
 			//限幅
 				#ifdef DEBUG
 
 
-            // 判断 pitch->message.out_position 与 0.17f 的差的绝对值是否大于容差
+            
        
                 // target_position=GenerateReversingRamp(0, 0.17, 50, 1000, 2000); // 每步间隔25ms，端点暂停500ms
-            
+            //Motor_Dm_Pos_Vel_Control(pitch,target_position,target_speed);
 //			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
 			#endif
 			 target_position=target_position>0.17?0.17:target_position;
