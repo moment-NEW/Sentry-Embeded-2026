@@ -16,6 +16,7 @@
 
 #include "bsp_can.h"
 #include "bsp_log.h"
+#include "bsp_dwt.h"
 
 #include "app_command_task.h"
 

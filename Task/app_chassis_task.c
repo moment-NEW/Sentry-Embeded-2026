@@ -23,7 +23,7 @@ float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
 extern uint8_t mode;
-float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0;
+float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_position=0.0;
 #endif
 uint8_t control_mode=RC_MODE;//默认遥控器模式
@@ -31,7 +31,7 @@ uint8_t control_mode=RC_MODE;//默认遥控器模式
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
-		.gimbal_yaw_zero =  2.07979059f,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
+		.gimbal_yaw_zero =  -1.32168853,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
 		//.gimbal_yaw_half = 0.130077288,//(251481.0f / 262144.0f) * 2.0f * 3.141593f
 		.omni_message={
 		.wheel_radius= 0.0765f,
@@ -59,8 +59,8 @@ static ChassisInitConfig_s Chassis_config={
     },
     .reduction_ratio = 19.0f,
     .velocity_pid_config={
-      .kp = 10.0f,
-      .ki = 0.8f,
+      .kp = 35.0f,
+      .ki = 4.0f,
       .kd = 0.0f,
       .i_max = 1800.0f,
       .out_max = 8192.0f,
@@ -79,8 +79,8 @@ static ChassisInitConfig_s Chassis_config={
     },
     .reduction_ratio = 19.0f,
     .velocity_pid_config={
-      .kp = 10.0f,
-      .ki = 0.8f,
+      .kp = 35.0f,
+      .ki = 4.0f,
       .kd = 0.0f,
       .i_max = 1800.0f,
       .out_max = 8192.0f,
@@ -98,8 +98,8 @@ static ChassisInitConfig_s Chassis_config={
     },
     .reduction_ratio = 19.0f,
     .velocity_pid_config={
-      .kp = 10.0f,
-      .ki = 0.8f,
+      .kp = 35.0f,
+      .ki = 4.0f,
       .kd = 0.0f,
       .i_max = 1800.0f,
       .out_max = 8192.0f,
@@ -118,8 +118,8 @@ static ChassisInitConfig_s Chassis_config={
     },
     .reduction_ratio = 19.0f,
     .velocity_pid_config={
-      .kp = 10.0f,
-      .ki = 0.8f,
+      .kp = 35.0f,
+      .ki = 4.0f,
       .kd = 0.0f,
       .i_max = 1800.0f,
       .out_max = 8192.0f,
@@ -130,8 +130,8 @@ static ChassisInitConfig_s Chassis_config={
 	
 	//底盘大yaw电机配置
 	static DmMotorInitConfig_s Down_config = {
-//    .control_mode = DM_VELOCITY,     // 位置控制模式
-	.control_mode = DM_POSITION,
+   .control_mode = DM_VELOCITY,     
+//	 .control_mode = DM_POSITION,
 		.topic_name = "down_yaw",
     .can_config = {
         .can_number = 1,
@@ -141,7 +141,7 @@ static ChassisInitConfig_s Chassis_config={
         .can_module_callback = NULL,
     },
 		.parameters = {
-        .pos_max = 3.141593f,    // [查手册] 电机最大位置范围 (弧度)
+        .pos_max = 6.2831853f,    // [查手册] 电机最大位置范围 (弧度)
         .vel_max = 45.0f,    // [查手册] 电机最大速度范围 (弧度/秒)
         .tor_max = 18.0f,    // [查手册] 电机最大扭矩范围 (N·m)
         .kp_max  = 500.0f,   // [查手册] Kp增益最大值
@@ -157,7 +157,7 @@ static ChassisInitConfig_s Chassis_config={
         .angle_max = 2.0f * PI,
         .i_max = 100.0,
         .out_max = 400.0,
-    },
+    }, 
     .velocity_pid_config = {
         .kp = 0.0,
         .ki = 0.0,
@@ -187,7 +187,7 @@ void StartChassisTask(void const * argument)
     if (Chassis == NULL) {
         Log_Error("Chassis Register Failed!");
     }
-  MiniPC = MiniPC_Register(&miniPC_config);
+  MiniPC = Minipc_Register(&miniPC_config);
     if (MiniPC == NULL) {
         Log_Error("MiniPC Register Failed!");
     }
@@ -203,13 +203,17 @@ void StartChassisTask(void const * argument)
 			Motor_Dm_Transmit(Down_yaw);
 			osDelay(1);
 		}
+		uint32_t dwt2_cnt_last = 0;
+		float dt2 = 0.001f;  // 初始dt
+		dwt2_cnt_last = DWT->CYCCNT;
   /* Infinite loop */
   for(;;)
   {
 		#ifdef DEBUG
-		test_speed=Down_yaw->message.out_velocity;
-		test_position=Down_yaw->message.out_position;
-		
+		test_speed=Chassis->chassis_motor[2]->message.out_velocity;
+		test_position=Chassis->chassis_motor[2]->message.out_position;//Down_yaw->message.out_position;
+		target_speed=Chassis->chassis_motor[2]->target_velocity;//Down_yaw->target_velocity;
+		dt2 = Dwt_GetDeltaT(&dwt2_cnt_last);
 		#endif
 		Get_Message(CH_Subs,CH_Receive_s);
 		control_mode=mode;
@@ -226,20 +230,29 @@ void StartChassisTask(void const * argument)
         break;
     case RC_MODE:
         /* code */
-				
+				//ch2：x，ch3：y
         Chassis_Mode_Choose(Chassis, CHASSIS_NORMAL);
 				Chassis->gimbal_yaw_angle=Down_yaw->target_position;
-				Chassis->absolute_chassis_speed.Vx=CH_Receive_s->dr16_handle.ch2/132.0f;
-				Chassis->absolute_chassis_speed.Vy=CH_Receive_s->dr16_handle.ch3/132.0f;
+				Chassis->absolute_chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
+				Chassis->absolute_chassis_speed.Vy=CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
+        //大Yaw控制逻辑
 				Motor_Dm_Control(Down_yaw,target_position);
+				test_output=Down_yaw->output;
 				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
 				Motor_Dm_Transmit(Down_yaw);
-        break;
+				break;
+					
+        
     case TRANS_MODE:
         /* code */
+				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
+				Motor_Dm_Transmit(Down_yaw);
+				
         break;
     case DISABLE_MODE:
+				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
+				Motor_Dm_Transmit(Down_yaw);
         Chassis_Mode_Choose(Chassis, CHASSIS_SLOW);
         Chassis->absolute_chassis_speed.Vx=0.0f;
         Chassis->absolute_chassis_speed.Vy=0.0f;

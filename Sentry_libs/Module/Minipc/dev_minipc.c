@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "FreeRTOS.h"
+#include "bsp_log.h"
 #define USB_RX_BUFFER_SIZE 32//64个字节，2个完整包
 #define USB_MAX_INSTANCE 8//允许的最多实例数量
 
@@ -53,14 +54,14 @@ MiniPC_Instance* Minipc_Register(MiniPC_Config* config) {
     // 检查实例数量限制
     uint8_t current_count = (USB_Instance_Count == 255) ? 0 : USB_Instance_Count;
     if (current_count >= USB_MAX_INSTANCE) {
-        printf("Error: Maximum USB instances reached\n");
+        Log_Error("Error: Maximum USB instances reached");
         return NULL;
     }
     
     // 分配内存
     MiniPC_Instance* instance = (MiniPC_Instance*)pvPortMalloc(sizeof(MiniPC_Instance));
     if(instance == NULL) {
-        printf("Failed to allocate memory for MiniPC_Instance\n");
+        Log_Error("Failed to allocate memory for MiniPC_Instance");
         return NULL;
     }
 
@@ -91,7 +92,6 @@ MiniPC_Instance* Minipc_Register(MiniPC_Config* config) {
     // 注册USB接收回调函数
     USB_RegisterRxCallback(USB_Data_Received_Callback);
 
-    printf("Registered MiniPC instance %d at index %d\n", instance->id, instance->id);
     return instance;
 }
 
@@ -169,7 +169,7 @@ void USB_Data_Received_Callback(uint8_t* buf, uint32_t len) {
             break;
         }
     }
-		Data_Processing();
+    Data_Processing();
 }
 /**
  * @brief 处理接收到的USB数据
@@ -202,14 +202,14 @@ void Data_Processing(void) {
 
                     if(packet_index >= 32) {
                         // 接收完整个数据包，验证包尾
-                        printf("Packet received: end byte = 0x%02X (should be 'e'=0x65)\n", packet.raw_data[31]);
+                        
                         packet_pointer=&packet;//把指针暴露出去喵
                         if(packet.raw_data[31] == 'e') {
                             // 处理接收到的有效数据包
-                            printf("Valid packet received, type = 0x%02X\n", packet.raw_data[1]);
+                            
                             USB_SetDataReadyFlags(packet.raw_data[1]);
                         } else {
-                            printf("Invalid packet: wrong end byte 0x%02X\n", packet.raw_data[31]);
+                           
                         }
                         // 重置状态，准备接收下一个数据包
                         packet_state = 0;
@@ -217,7 +217,7 @@ void Data_Processing(void) {
                     }
                 } else {
                     // 数据包长度异常，重置状态
-                    printf("Packet length error, resetting state\n");
+                    
                     packet_state = 0;
                     packet_index = 0;
                 }
@@ -243,7 +243,7 @@ void Computer_Tx(float yaw, float pitch, uint8_t color, uint8_t mode, uint8_t ru
     packet.start = 's';
     packet.datatype = 0xB0;
     packet.high_gimbal_yaw = yaw;
-		packet.low_gimbal_yaw =0.0;
+    packet.low_gimbal_yaw =0.0;
     packet.pitch = pitch;
     packet.enemy_team_color = color;
     packet.mode = mode;
@@ -257,10 +257,6 @@ void Computer_Tx(float yaw, float pitch, uint8_t color, uint8_t mode, uint8_t ru
     CDC_Transmit_FS((uint8_t*)&packet,32);
 }
 
-
-
-
-
 /**
  * @brief 配置自瞄发送数据源 - 简化接口
  * @param instance 实例指针
@@ -273,7 +269,7 @@ void Computer_Tx(float yaw, float pitch, uint8_t color, uint8_t mode, uint8_t ru
  */
 void Minipc_ConfigAimTx(MiniPC_Instance* instance, float* high_yaw, float* pitch, uint8_t* enemy_color, uint8_t* mode, uint8_t* rune_flag, float* low_yaw) {
     if (instance == NULL || instance->Send_Message_Type != USB_MSG_AIM_TX) {
-        printf("Error: Invalid instance for AIM_TX\n");
+        Log_Error("Error: Invalid instance for AIM_TX");
         return;
     }
     
@@ -286,15 +282,16 @@ void Minipc_ConfigAimTx(MiniPC_Instance* instance, float* high_yaw, float* pitch
     instance->data_source.aim_tx.low_gimbal_yaw = low_yaw;
     
     
-    printf("Configured AIM_TX data source for instance %d\n", instance->id);
+   
 }
+
 #ifdef SENTRY_MODE
 /**
  * @brief 配置友方位置1发送数据源 
  */
 void Minipc_ConfigFriendPos1Tx(MiniPC_Instance* instance, float* inf3_x, float* inf3_y, float* inf4_x, float* inf4_y, float* inf5_x, float* inf5_y) {
     if (instance == NULL || instance->message_type != USB_MSG_FRIEND1_TX) {
-        printf("Error: Invalid instance for FRIEND1_TX\n");
+        Log_Error("Error: Invalid instance for FRIEND1_TX");
         return;
     }
     
@@ -306,10 +303,8 @@ void Minipc_ConfigFriendPos1Tx(MiniPC_Instance* instance, float* inf3_x, float* 
     instance->data_source.friend_pos_1.infantry_5_y = inf5_y;
     
     
-    printf("Configured FRIEND1_TX data source for instance %d\n", instance->id);
+    
 }
-
-
 #endif
 /**
  * @brief 更新单个实例的数据
@@ -328,7 +323,7 @@ void Minipc_UpdateInstanceData(MiniPC_Instance* instance) {
     // 动态分配发送缓冲区
     send_union* send_buffer = (send_union*)pvPortMalloc(sizeof(send_union));
     if (send_buffer == NULL) {
-        printf("Failed to allocate send buffer for instance %d\n", instance->id);
+        Log_Error("Failed to allocate send buffer for instance %d", instance->id);
         return;
     }
     
@@ -350,9 +345,7 @@ void Minipc_UpdateInstanceData(MiniPC_Instance* instance) {
             if (src->mode != NULL) msg->mode = *(src->mode);
             if (src->rune_flag != NULL) msg->rune_flag = *(src->rune_flag);
             if (src->low_gimbal_yaw != NULL) msg->low_gimbal_yaw = *(src->low_gimbal_yaw);
-            
-            printf("Sending AIM_TX: yaw=%.2f, pitch=%.2f, color=%d, mode=%d\n", 
-                   msg->high_gimbal_yaw, msg->pitch, msg->enemy_team_color, msg->mode);
+           
             break;
         }
         #ifdef SENTRY_MODE
@@ -374,7 +367,7 @@ void Minipc_UpdateInstanceData(MiniPC_Instance* instance) {
             instance->callback(send_buffer);
         }
         default:
-            printf("Unknown Send_Message_Type: %d\n", instance->Send_Message_Type);
+            
             vPortFree(send_buffer);
             return;
     }
@@ -390,18 +383,18 @@ void Minipc_UpdateInstanceData(MiniPC_Instance* instance) {
  * @brief 更新所有已配置数据源的发送实例 
  */
 void Minipc_UpdateAllInstances(void) {
-    printf("Updating %d instances\n", USB_Instance_Count);
+   
     
     
     uint8_t actual_count = (USB_Instance_Count == 0) ? 1 : USB_Instance_Count;
     
     for (uint8_t i = 0; i < actual_count; i++) {
         MiniPC_Instance* instance = minipc_instances[i];
-        printf("Checking instance at index %d: %p\n", i, (void*)instance);
+        
         
         if (instance != NULL) {
             if(instance->Send_Message_Type==NULL){
-                printf("Instance %d has no Send_Message_Type, skipping\n", instance->id);
+                
                 continue;
             }
             Minipc_UpdateInstanceData(instance);

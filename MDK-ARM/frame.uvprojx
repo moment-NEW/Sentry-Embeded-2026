@@ -899,6 +899,16 @@
               <FileType>5</FileType>
               <FilePath>..\Sentry_libs\Module\Ist8310\dev_ist_8310.h</FilePath>
             </File>
+            <File>
+              <FileName>dev_minipc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Sentry_libs\Module\Minipc\dev_minipc.c</FilePath>
+            </File>
+            <File>
+              <FileName>dev_minipc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Sentry_libs\Module\Minipc\dev_minipc.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
