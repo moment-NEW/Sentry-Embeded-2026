@@ -6,7 +6,7 @@
  */
 #include "dev_motor_dji.h"
 #include <math.h>
-#include "FreeRTOS.h"
+#include "robot_config.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
@@ -41,7 +41,12 @@ static float Motor_Dji_Protect(float output, float max) {
  * @note 大疆电机可以一帧控制四个电机，所以需要对同一控制帧的电机进行分组
  * @date 2025-07-04
  */
+#ifdef USER_CAN_STANDARD
 static bool Motor_Dji_Grouping(uint32_t tx_id, CAN_HandleTypeDef *can_handle, uint8_t tx_buff[8]) {
+#endif
+#ifdef USER_CAN_FD
+    static bool Motor_Dji_Grouping(uint32_t tx_id, FDCAN_HandleTypeDef *can_handle, uint8_t tx_buff[8]) {
+#endif
     for(int i = 0; i < idx; i++) {
         if(motor_dji_instances[i]->can_instance->can_handle == can_handle && motor_dji_instances[i]->can_instance->tx_id == tx_id) {
            if(motor_dji_instances[i]->id < 5){   
@@ -112,13 +117,17 @@ DjiMotorInstance_s *Motor_Dji_Register(DjiMotorInitConfig_s *config) {
         return NULL;
     }
     // 分配内存
-    DjiMotorInstance_s *motor_instance = (DjiMotorInstance_s *)pvPortMalloc(sizeof(DjiMotorInstance_s));
+    DjiMotorInstance_s *motor_instance = (DjiMotorInstance_s *)user_malloc(sizeof(DjiMotorInstance_s));
     memset(motor_instance, 0, sizeof(DjiMotorInstance_s)); // 清空内存
     // 初始化电机基本信息
     motor_instance->topic_name = config->topic_name;
     motor_instance->type = config->type;
     motor_instance->control_mode = config->control_mode;
     motor_instance->reduction_ratio = config->reduction_ratio;
+    if(config->reduction_ratio == 0){
+        Log_Error("where`s your fucking reduction ratio config?");
+        return NULL;
+    }
     // 计算id
     if(config->type == GM6020){
         motor_instance->id = (config->can_config.rx_id - 4) % 0x200;
@@ -135,7 +144,7 @@ DjiMotorInstance_s *Motor_Dji_Register(DjiMotorInitConfig_s *config) {
     config->can_config.parent_ptr = motor_instance;
     motor_instance->can_instance = Can_Register(&config->can_config);
     if (motor_instance->can_instance == NULL) {
-        vPortFree(motor_instance); // 释放内存
+        user_free(motor_instance); // 释放内存
         return NULL;
     }
     motor_dji_instances[idx++] = motor_instance; // 将电机实例添加到电机数组中
