@@ -18,7 +18,6 @@
 
 #include "bsp_can.h"
 #ifdef USER_CAN_STANDARD
-#include "FreeRTOS.h"
 #include "bsp_log.h"
 #include <string.h>
 #include <stdbool.h>
@@ -394,9 +393,9 @@ bool Can_Transmit_External_Tx_Buff(const CanInstance_s *instance, const uint8_t 
         Log_Error("Can Transmit Failed, Instance or Tx Buff is NULL");
         return false;
     }
+	uint8_t can_tx_cnt = 0;
     /*@todo 重写并整合下面两个HAL库的函数可以减少一次寻找空邮箱的操作*/
     /* 等待直到有可用的发送邮箱 */
-		uint8_t can_tx_cnt=0;
     while (HAL_CAN_GetTxMailboxesFreeLevel(instance->can_handle) == 0) {
 		can_tx_cnt++;
 		if(can_tx_cnt>100){ //大概10ms
@@ -432,8 +431,9 @@ bool Can_Transmit(const CanInstance_s *instance) {
 			return false;
 		}
     }
+    uint32_t tx_mailbox = CAN_TX_MAILBOX0;
     if (HAL_CAN_AddTxMessage(instance->can_handle, &instance->tx_header, (uint8_t *) instance->tx_buff,
-                             (uint32_t *) CAN_TX_MAILBOX0) == HAL_OK) {
+                             &tx_mailbox) == HAL_OK) {
         return true;
     }
     /* 如果添加失败，返回false */

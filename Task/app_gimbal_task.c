@@ -27,18 +27,20 @@ float output=0;
 
 
 static DmMotorInitConfig_s pitch_config = {
-    // .control_mode = DM_VELOCITY,    
+     //.control_mode = DM_VELOCITY,    
 	.control_mode = DM_POSITION, // 位置控制模式
 		.topic_name = "pitch",
     .can_config = {
         .can_number = 2,
 				.topic_name = "pitch",
-        .tx_id = 0x006,
-        .rx_id = 0x016,
+          .tx_id = 0x006,
+        // .tx_id = 0x106,
+         .rx_id = 0x016,
+         
         .can_module_callback = NULL,
     },
 		.parameters = {
-        .pos_max = 3.141593f,    // [查手册] 电机最大位置范围 (弧度)
+        .pos_max = 6.2831853,    // [查手册] 电机最大位置范围 (弧度)
         .vel_max = 30.0f,    // [查手册] 电机最大速度范围 (弧度/秒)
         .tor_max = 18.0f,    // [查手册] 电机最大扭矩范围 (N·m)
         .kp_max  = 500.0f,   // [查手册] Kp增益最大值
@@ -47,21 +49,21 @@ static DmMotorInitConfig_s pitch_config = {
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 0.0,
-        .ki = 0.0,
-        .kd = 0.0,
+        .kp = 17,
+        .ki = 0.0015,
+        .kd = 0.06,
         .kf = 0.0,
         .angle_max = 2.0f * PI,
         .i_max = 100.0,
         .out_max = 400.0,
     },
     .velocity_pid_config = {
-        .kp = 0.0,
-        .ki = 0.0,
-        .kd = 0.0,
+        .kp = 0.53,
+        .ki = 0.009,
+        .kd = 0.017,
         .kf = 0.0,
         .angle_max = 0,
-        .i_max = 1000.0,
+        .i_max = 500.0,
         .out_max = 2000.0,//待商议
     }
 };
@@ -108,8 +110,11 @@ static  DjiMotorInitConfig_s Up_config = {
 float G_feed(float position){
     //[354.533813, -99.411941, 7.604260, -0.441783]
     // float torque = -21.321498 * sin(position + -1.625094) + -21.348101;
-    float torque = 354.533813*position*position*position + -99.411941*position*position + 7.604260*position + -0.441783;
-    return torque;
+	//[ 1.34165963 -1.72110943  0.29976696 -0.17707916]
+	//[2.319374, -3.015623, 0.755581, -0.311670]
+	//[1.549729, -2.003787, 0.406681, -0.285731]
+    float torque = 1.549729*position*position*position +  (-2.003787*position*position) +0.406681*position + ( -0.285731);
+    return torque; 
 }
 ////////测试用代码///////////
 #ifdef DEBUG
@@ -177,11 +182,97 @@ float GenerateSimpleRampWithPause(float start, float end, int steps, uint32_t in
     // 4. 返回当前计算出的目标值
     return target_setpoint;
 }
+/**
+ * @brief 生成一个在端点暂停并自动往复的斜坡信号。
+ *        此版本基于时间间隔进行更新。
+ * 
+ * @param min_pos       运动区间的最小值
+ * @param max_pos       运动区间的最大值
+ * @param steps         从一端到另一端所需的步数
+ * @param interval_ms   每一步之间的时间间隔 (毫秒)
+ * @param pause_ms      在端点暂停的时间 (毫秒)
+ * @return float        当前的目标设定点
+ */
+float GenerateReversingRamp(float min_pos, float max_pos, int steps, uint32_t interval_ms, uint32_t pause_ms)
+{
+    // --- 静态变量，用于在函数调用间保持状态 ---
+    static float target_setpoint = 0.0f;
+    static int current_step = 0;
+    static uint32_t last_update_time = 0;
+    static char is_forward_trip = 1; // 1: min->max, 0: max->min
+    static char is_paused = 0;       // 1: 正在暂停, 0: 正在运动
+
+    // --- 用于初始化的静态变量 ---
+    static int initialized = 0;
+    uint32_t current_time = osKernelSysTick();
+
+    // 1. 仅在第一次调用时进行初始化
+    if (!initialized) {
+        target_setpoint = min_pos;
+        current_step = 0;
+        is_forward_trip = 1;
+        is_paused = 0;
+        last_update_time = current_time;
+        initialized = 1;
+    }
+
+    // 2. 状态机逻辑
+    if (is_paused) // 如果当前处于暂停状态
+    {
+        if (current_time - last_update_time >= pause_ms)
+        {
+            // 暂停结束，准备“掉头”
+            is_forward_trip = !is_forward_trip; // 切换方向
+            current_step = 0;                   // 重置步数
+            is_paused = 0;                      // 退出暂停状态
+            last_update_time = current_time;    // 更新时间戳，开始新的运动
+        }
+    }
+    else // 如果当前处于运动状态
+    {
+        if (current_time - last_update_time >= interval_ms)
+        {
+            if (current_step < steps)
+            {
+                current_step++; // 移动到下一步
+                last_update_time = current_time;
+            }
+            
+            if (current_step >= steps)
+            {
+                // 到达端点，开始暂停
+                is_paused = 1;
+                last_update_time = current_time; // 重置暂停计时器
+            }
+        }
+    }
+
+    // 3. 根据当前状态计算目标点
+    float start_pos = is_forward_trip ? min_pos : max_pos;
+    float end_pos = is_forward_trip ? max_pos : min_pos;
+
+    if (steps > 0) {
+        target_setpoint = start_pos + (end_pos - start_pos) * ((float)current_step / (float)steps);
+    } else {
+        target_setpoint = start_pos;
+    }
+
+    // 4. 返回当前计算出的目标值
+    return target_setpoint;
+}
 
 #endif
 void StartGimbalTask(void const * argument)
 {
+		#ifdef DEBUG
+    uint32_t dwt_cnt_last3 = 0;
+    float dt3 = 0.001f;  // 初始dt
+    static float lasttime3 = 0;
     
+    // 初始化DWT计数器
+    dwt_cnt_last3 = DWT->CYCCNT;
+		#endif
+	
     pitch=Motor_DM_Register(&pitch_config);//4310
     Up_yaw=Motor_Dji_Register(&Up_config);//6020
 		
@@ -205,38 +296,44 @@ void StartGimbalTask(void const * argument)
 		#ifdef DEBUG
 		test_speed=pitch->message.out_velocity;
 		test_position=pitch->message.out_position;
+		target_speed=pitch->angle_pid->output;
+		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
+       
+        // 限制dt范围，防止异常值
+        if (dt3 > 0.01f || dt3 <= 0.0f) {
+            dt3 = 0.001f;  // 默认1ms
+        }
 		#endif
 		switch (ControlMode) {
 			case PC_MODE:
 				break;
 			case RC_MODE:
-//				Motor_Dm_Control(Down_yaw,target_position);
-//        Motor_Dm_Mit_Control(Down_yaw,0,0,Down_yaw->output);
 
-//				Motor_Dm_Transmit(Down_yaw);
 			//Pitch轴
 			//限幅
 				#ifdef DEBUG
 
 
-            
-       
-                // target_position=GenerateReversingRamp(0, 0.17, 50, 1000, 2000); // 每步间隔25ms，端点暂停500ms
-            //Motor_Dm_Pos_Vel_Control(pitch,target_position,target_speed);
+               
+//       target_position=GenerateReversingRamp(0, 1, 50, 6000, 6000); //50个点，间隔2s，端点停止2s
+//       Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
 //			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
 			#endif
-			 target_position=target_position>0.17?0.17:target_position;
+			if(pitch->control_mode==DM_POSITION){
+			 target_position=target_position>1?1:target_position;
 			 target_position=target_position<0.0?0.0:target_position;
 				
+			}
+				
 			 Motor_Dm_Control(pitch,target_position);
-				if(0<pitch->message.out_position<0.17){
+			
 					output=pitch->output+G_feed(pitch->message.out_position);
-				}
+				
        Motor_Dm_Mit_Control(pitch,0,0,output);
 				
 				
 				#ifdef DEBUG
-				test_output=pitch->output;
+				test_output=pitch->message.torque;
 			#endif
 			 Motor_Dm_Transmit(pitch);
 			

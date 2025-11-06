@@ -14,7 +14,14 @@
 #include "app_ins_task.h"
 #include "FreeRTOS.h"
 #include "bsp_dwt.h"  // 添加DWT头文件
+
+
+#ifdef DEBUG
+#include "stdio.h"
+#include "usart.h"
+#endif
 //extern Ist8310Instance_s *asdf;
+char tx_buff[128];  // 足够大的缓冲区
 PidInstance_s *ins_pid;
 uint8_t test_data[5]={0,0,0,0,0};
 quaternions_struct_t Quater;//四元数
@@ -251,6 +258,10 @@ void isttask(void const * argument)
                 Quater.roll = getRoll();     // 横滚角（度）
                 Quater.pitch = getPitch();   // 俯仰角（度）
                 Quater.yaw = getYaw();   
+                #ifdef DEBUG
+                sprintf(tx_buff, "channels:%.6f,%.6f,%.6f\n", Quater.roll, Quater.pitch, Quater.yaw);
+                 HAL_UART_Transmit(&huart1, (uint8_t*)tx_buff, strlen(tx_buff), HAL_MAX_DELAY);
+                #endif
 								//-flag*(0.015*(bmi088_test->temperature-25)+1)*dt							// 偏航角（度）
 //							Quater.Acc.A_x = filtered_accel[0];
 //							Quater.Acc.A_y = filtered_accel[1];

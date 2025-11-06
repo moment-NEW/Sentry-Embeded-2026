@@ -48,7 +48,7 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\..\Sentry-Embeded-2026\robot_config.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
-  ..\Sentry_libs\Module\Dr16\dev_dr16.h \
+  ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Sentry_libs\Module\Dr16\dev_dr16.h \
   ..\Sentry_libs\Bsp\Uart\bsp_uart.h ..\Core\Inc\usart.h \
   ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
   ..\Sentry_libs\Bsp\Can\bsp_can.h ..\Core\Inc\can.h \

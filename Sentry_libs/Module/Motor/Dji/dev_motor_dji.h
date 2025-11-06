@@ -14,6 +14,7 @@
 #include "bsp_fdcan.h"
 #endif
 #include "alg_pid.h"
+#include "bsp_log.h"
 #include <stdbool.h>
 
 #define PI 3.14159265358979323846 // 圆周率要换位置
@@ -52,7 +53,7 @@ typedef struct{
     uint8_t id;                           // 电机ID(0~8)
 
     CanInitConfig_s can_config;           // 电机CAN配置
-    uint8_t reduction_ratio;              // 减速比
+    float reduction_ratio;              // 减速比
 
     PidInitConfig_s angle_pid_config;     // 角度控制PID配置
     PidInitConfig_s velocity_pid_config;  // 速度控制PID配置
@@ -69,7 +70,7 @@ typedef struct{
     PidInstance_s *velocity_pid;        // 速度控制PID实例指针
 
     DjiMotorMessage_s message;          // 电机状态信息
-    uint8_t reduction_ratio;            // 电机减速比
+    float reduction_ratio;            // 电机减速比
 
     float target_position;              // 电机目标角度(-PI~PI)
     float target_velocity;              // 电机目标速度(rpm)
