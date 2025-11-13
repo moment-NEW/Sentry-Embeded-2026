@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "usart.h"
+#include "stm32f4xx_hal_def.h"
 
 #define UART_MAX_CNT 5 // 单个C板串口最大数量，如果使用其他开发版请自行配置
 #define UART_RX_BUFF_LEN 50 // 串口缓存最大长度
@@ -34,6 +35,7 @@ typedef enum {
     UART_BLOCKING_MODE = 0, // 阻塞模式
     UART_IT_MODE = 1,       // 中断模式
     UART_DMA_MODE = 2,      //DMA模式
+    UART_IDLE_DMA_MODE = 3, // 空闲中断+DMA模式
 } UartMode_e;
 
 

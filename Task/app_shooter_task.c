@@ -14,8 +14,11 @@ DjiMotorInstance_s *Right_Wheel;
 
 
 DjiMotorInstance_s *Trigger;
-
-
+#define DEBUG
+#ifdef DEBUG
+float test_speed_tr=0.0;
+float target_speed_tr=0.0;
+#endif
 //变量声明
 ShooterState_t Shooter_State;
 //float target_speed=0.0;//后续改为上位机提供
@@ -97,7 +100,7 @@ static  DjiMotorInitConfig_s Trigger_Config = {
     .control_mode = DJI_VELOCITY,  // 电机控制模式
 		.topic_name = "up_yaw",
     .can_config = {
-        .can_number = 1,
+        .can_number = 2,
 				.topic_name = "up_yaw",              // can句柄
         .tx_id = 0x200,                     // 发送id 
         .rx_id = 0x203,                     // 接收id
@@ -132,11 +135,13 @@ void StartShooterTask(void const * argument)
   /* Infinite loop */
   for(;;)
   { 
+    
     switch(Shooter_State){
 			default:
 				break;
     }
-		Motor_Dji_Control(Trigger,0);
+		test_speed_tr=Trigger->message.out_velocity;
+		Motor_Dji_Control(Trigger,target_speed_tr);
 		Motor_Dji_Transmit(Trigger);
     osDelay(1);
   }

@@ -16,10 +16,15 @@
 #include "dev_dr16.h"
 #include "dev_motor_dm.h"
 #include "dev_motor_dji.h"
+#include "dev_board_communicate.h"
+
 
 // 通信系统
 #include "Com_System.h"
 
+
+//命令
+#include "app_command_task.h"
 
 
 //宏定义
