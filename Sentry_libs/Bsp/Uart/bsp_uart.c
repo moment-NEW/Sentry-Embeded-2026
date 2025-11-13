@@ -1,6 +1,7 @@
 /**
 * @file bsp_uart.c
  * @author Wenxin HU
+ * @editor CGH
  * @brief UART驱动模块
  * @version 0.1
  * @details UART,提供UART的初始化、发送、接收等功能
@@ -40,10 +41,14 @@ static void Uart_RxCallback(UART_HandleTypeDef *huart) {
             //重新打开接收中断
             if (uart_instance[i]->mode == UART_IT_MODE)
                 HAL_UART_Receive_IT(huart, uart_instance[i]->rx_buff, uart_instance[i]->rx_len);
-            else if (uart_instance[i]->mode == UART_DMA_MODE)
+            else if (uart_instance[i]->mode == UART_DMA_MODE){
 
                 HAL_UART_Receive_DMA(huart, uart_instance[i]->rx_buff, uart_instance[i]->rx_len);
                 //关闭IDLE中断
+            }else if(uart_instance[i]->mode == UART_IDLE_DMA_MODE){
+                __HAL_UART_CLEAR_IDLEFLAG(huart); // 清除IDLE标志
+                HAL_UART_Receive_DMA(huart, uart_instance[i]->rx_buff, uart_instance[i]->rx_len);
+            }
             break; // 找到后退出循环
         }
     }
@@ -112,6 +117,9 @@ bool Uart_Transmit(UartInstance_s *uart_instance, uint8_t *data) {
         HAL_UART_Transmit_IT(uart_instance->uart_handle, uart_instance->tx_buff, uart_instance->tx_len);
     } else if (uart_instance->mode == UART_DMA_MODE) {
         HAL_UART_Transmit_DMA(uart_instance->uart_handle, uart_instance->tx_buff, uart_instance->tx_len);
+    } else if (uart_instance->mode == UART_IDLE_DMA_MODE) {
+        __HAL_UART_ENABLE_IT(uart_instance->uart_handle, UART_IT_IDLE); // 使能IDLE中断
+        HAL_UART_Receive_DMA(uart_instance->uart_handle, uart_instance->rx_buff, uart_instance->rx_len);
     } else {
         return false; // 不支持的模式
     }

@@ -1,7 +1,8 @@
 #include "FreeRTOS.h"
+#include <stdint.h> // 添加以支持 uint32_t
 
 #include "bsp_can.h"
-
+#include "bsp_log.h"
 
 #include "Com_System.h"
 #include "app_command_task.h"
@@ -9,33 +10,39 @@
 //实际发送的id是 BOARD_TX_ID_BASE + board_id，接收的id是 BOARD_RX_ID_BASE + board_id
 #define BOARD_RX_ID_BASE 0x700
 
+
+#define UP2DOWN_MESSAGE_TYPE 1
+#define DOWN2UP_MESSAGE_TYPE 0
+//实验性的宏定义，试试看咋样
+// 将实例中的8字节数据缓冲区(data_buffer)的地址转换为指定结构体指针
+#define ACCESS_AS_STRUCT(instance, struct_type) ((struct_type *)&(instance)->data_buffer)
+
+#pragma pack(1)
+//CAN一帧8字节，所以一共是8*8=64位
 /**
  * @brief 下发上数据包结构体
  */
 typedef struct{
-    uint8_t control_mode;
-    float down_yaw_pos;
+    uint8_t control_mode:8; //
+    uint8_t shoot_bool:1;     //0-不射击，1-射击
+    uint16_t reserved:7;    // 保留位
+    uint16_t up_target:16;   // 上云台目标角度(半精度)
+    uint16_t down_yaw_pos:16;// 下云台当前角度(半精度)
+    uint16_t reserved2:16;   // 保留位
 } down2up_message_t;
+
 /**
  * @brief 上发下数据包结构体
  */
 typedef struct{
-    uint8_t findbool;
-    float up_yaw_pos;
+    uint8_t findbool:1;     // 0-未找到，1-找到
+    uint16_t reserved:15;    // 保留位
+    uint16_t up_yaw_pos:16;  // 上云台当前角度(半精度)
+    uint16_t reserved2:16;   // 保留位
+    uint16_t reserved3:16;   // 保留位
 } up2down_message_t;
-/** 
-* @brief 需要发送的数据包结构体
-*
-*/
-typedef struct
-{   
-    uint8_t data_source;
 
-    uint8_t start;
-    uint8_t id;
-    uint8_t data[8];
-    uint8_t end;
-} board_message_t;
+#pragma pack()
 
 /**
  * @brief 实例，用于板间通信
@@ -44,8 +51,19 @@ typedef struct
 typedef struct
 {
     uint8_t board_id;                            /**< 板子ID */
-    CanInstance_s can_instance;                /**< CAN实例 */
-    board_message_t board_message;      /**< 板间通信数据包 */
+    CanInstance_s* can_instance;                /**< CAN实例 */
+    uint8_t message_type;                       /**< 消息类型, 决定发送和接收时使用哪种结构体 */
+
+    uint8_t data_buffer[8];                     /**< 用于打包和解包的8字节数据缓冲区 */
+
+    // --- 解码后的数据 (从其他板接收) ---
+    uint8_t received_control_mode;
+    uint8_t received_shoot_bool;
+    float   received_target_up_yaw;
+    float   received_current_down_yaw;
+    uint8_t received_find_bool;
+    float   received_up_yaw_pos;
+
 } board_instance_t;
 
 typedef struct 
@@ -55,5 +73,13 @@ typedef struct
     uint8_t message_type; // 0: down2up_message_t, 1: up2down_message_t
 } board_config_t;
 
-board_instance_t board_init(board_config_t *config);
-void board_send_message(board_instance_t *instance);
+typedef union {
+    float f;
+    uint32_t u;
+} FloatUnion;
+
+// 返回指向动态分配内存的指针
+board_instance_t* board_init(board_config_t *config);
+// 发送函数需要明确传入要发送的数据
+void board_send_message(board_instance_t *instance, float data1, float data2, uint8_t flag1, uint8_t flag2);
+void Board_Message_Decode(CanInstance_s *can_instance);

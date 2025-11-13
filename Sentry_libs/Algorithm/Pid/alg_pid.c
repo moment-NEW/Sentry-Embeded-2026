@@ -1,6 +1,6 @@
 #include "alg_pid.h"
 #include <math.h>
-#include "FreeRTOS.h"
+#include "robot_config.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -10,10 +10,10 @@ PidInstance_s *Pid_Register(PidInitConfig_s *config)
         // 配置参数错误
         return NULL;
     }
-    PidInstance_s *pid_instance = (PidInstance_s *)pvPortMalloc(sizeof(PidInstance_s));
+    PidInstance_s *pid_instance = (PidInstance_s *)user_malloc(sizeof(PidInstance_s));
     memset(pid_instance, 0, sizeof(PidInstance_s));
     if(pid_instance == NULL){
-        vPortFree(pid_instance);
+        user_free(pid_instance);
         return NULL;
     }   
     pid_instance->kp = config->kp;
@@ -40,6 +40,7 @@ PidInstance_s *Pid_Register(PidInitConfig_s *config)
         pid_instance->i_variable_max = config->i_variable_max;
     }
     pid_instance->d_first = config->d_first;
+    pid_instance->is_enabled = true;
     return pid_instance;
 }
 static void Pid_Protect(PidInstance_s *pid)
@@ -71,6 +72,9 @@ static float Pid_Limit(float value, float min, float max)
 
 float Pid_Calculate(PidInstance_s *pid, float target, float now)
 {
+    if(pid->is_enabled == false){
+        return 0.0f;
+    }
     // 前置工作
     pid->target[0] = target;
     pid->now[0] = now;
@@ -123,41 +127,24 @@ float Pid_Calculate(PidInstance_s *pid, float target, float now)
     return pid->output;
 }
 
-bool Pid_Reset(PidInstance_s *pid, PidInitConfig_s *config)
-{
-    if (pid == NULL)
+bool Pid_Disable(PidInstance_s *pid){
+    if(pid == NULL)
         return false;
-    // 重置PID实例
-    pid->kp = config->kp;
-    pid->ki = config->ki;
-    pid->kd = config->kd;
-    pid->kf = config->kf;
-    pid->angle_max = config->angle_max;
-    if (config->i_max > config->out_max){
-        // 积分限幅大于输出限幅,
-        pid->i_max = config->out_max;
-    }
-    else{
-        pid->i_max = config->i_max;
-    }
-    pid->out_max = config->out_max;
-    pid->dead_zone = config->dead_zone;
-    if (config->i_variable_max == 0 || config->i_variable_min > config->i_variable_max){
-        pid->i_variable_min = config->i_variable_min;
-        pid->i_variable_max = config->i_variable_min;
-    }
-    else{
-        pid->i_variable_min = config->i_variable_min;
-        pid->i_variable_max = config->i_variable_max;
-    }
-    pid->d_first = config->d_first;
+    pid->is_enabled = false;
+    pid->i_out = 0.0f; // 关闭PID时清零积分项
+    pid->output = 0.0f; // 关闭PID时清零输出值
+    pid->err[0] = 0.0f;
+    pid->err[1] = 0.0f;
+    pid->target[0] = 0.0f;
+    pid->target[1] = 0.0f;
+    pid->now[0] = 0.0f;
+    pid->now[1] = 0.0f;
     return true;
 }
 
-bool Pid_Clean(PidInstance_s *pid)
-{
-    if (pid == NULL)
+bool Pid_Enable(PidInstance_s *pid){
+    if(pid == NULL)
         return false;
-    memset(pid, 0, sizeof(PidInstance_s)); // 把kp,ki等全部清零，在电机失联后调用
+    pid->is_enabled = true;
     return true;
 }

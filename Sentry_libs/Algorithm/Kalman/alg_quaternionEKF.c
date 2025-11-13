@@ -155,7 +155,7 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
     QEKF_INS.Accel[0] = QEKF_INS.Accel[0] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + ax * QEKF_INS.dt / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
     QEKF_INS.Accel[1] = QEKF_INS.Accel[1] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + ay * QEKF_INS.dt / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
     QEKF_INS.Accel[2] = QEKF_INS.Accel[2] * QEKF_INS.accLPFcoef / (QEKF_INS.dt + QEKF_INS.accLPFcoef) + az * QEKF_INS.dt / (QEKF_INS.dt + QEKF_INS.accLPFcoef);
-
+//这里玺佬用快速平方根倒数，将除法转换为乘法减少了计算量
     // set z,单位化重力加速度向量
     accelInvNorm = invSqrt(QEKF_INS.Accel[0] * QEKF_INS.Accel[0] + QEKF_INS.Accel[1] * QEKF_INS.Accel[1] + QEKF_INS.Accel[2] * QEKF_INS.Accel[2]);
     for (uint8_t i = 0; i < 3; ++i)
@@ -496,3 +496,6 @@ static float invSqrt(float x)
     y = y * (1.5f - (halfx * y * y));
     return y;
 }
+//以上的原理主要是可以用M+2^23E表示浮点数，然后取倒数平方根即a=1/sqrt(x)，两边取Log得到log2(a)=-0.5log2(x)，
+//代入浮点数，Log2(Ma+2^23E)=-0.5(Log2(Mx)+23E)，得到Log2(a)=-0.5(Log2(M)+23E)=-0.5Log2(M)-11.5E，
+//算了懒得推了，总之参考这个魔数就行了0x5f375a86，推导过程见https://zhuanlan.zhihu.com/p/603841009
