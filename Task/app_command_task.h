@@ -7,6 +7,7 @@
 #include "dev_dr16.h"
 #include "dev_minipc.h"
 #include "Com_System.h"
+#include "dev_board_communicate.h"
 
 #include "bsp_log.h"
 

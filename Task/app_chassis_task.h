@@ -13,10 +13,13 @@
 
 #include "alg_chassis_calc.h"
 #include "alg_pid.h"
+#include "alg_fliter.h"
 
 #include "bsp_can.h"
 #include "bsp_log.h"
 #include "bsp_dwt.h"
+
+#include "dev_board_communicate.h"
 
 #include "app_command_task.h"
 

@@ -43,17 +43,17 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
       mode= last_mode==DISABLE_MODE?TRANS_MODE:UP_MODE;
       return mode;
       break;
-    case 0x31: // s1=3 (中), s2=1 (上)
+    case 0x32: // s1=3 (中), s2=2 (中)
     if (last_mode == UP_MODE)
     {
       mode = SHOOT_MODE;
     }else{
     
-      mode = last_mode==DISABLE_MODE?TRANS_MODE:SHOOT_MODE;
+      mode = DISABLE_MODE;
     }
       return mode;
       break;
-    case 0x32:
+    case 0x31:
     case 0x33:
       
      

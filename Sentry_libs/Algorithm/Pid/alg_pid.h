@@ -24,6 +24,7 @@ typedef struct{
     float d_out;                     //微分输出
     float f_out;                     //前馈输出
     float output;                    //输出值
+    bool is_enabled;                 //PID使能标志
 }PidInstance_s;           
 
 typedef struct{           
@@ -62,25 +63,23 @@ PidInstance_s *Pid_Register(PidInitConfig_s *config);
  */
 float Pid_Calculate(PidInstance_s *pid, float target, float now);
 
-/**
- * @file alg_pid.h
- * @brief PID控制器清理函数
- * @details 该函数用于清理把Pid实例中的所有参数清零
- * @param pid PidInstance_s指针，PID控制器实例
- * @return 成功返回true，失败返回false
- * @note 该函数通常在电机失联后调用，以清除PID控制器的状态
- * @note 该函数在调用后不可恢复，只能通过重启程序解决
- * @date 2025-07-01
- */
-bool Pid_Clean(PidInstance_s *pid);
 
 /**
  * @file alg_pid.h
- * @brief PID控制器重置函数
+ * @brief PID控制器禁用函数
  * @param pid PidInstance_s指针，PID控制器实例
  * @return 成功返回true，失败返回false
  * @date 2025-07-01
  */
-bool Pid_Reset(PidInstance_s *pid, PidInitConfig_s *config);
+bool Pid_Disable(PidInstance_s *pid);
+
+/**
+ * @file alg_pid.h
+ * @brief PID控制器启用函数
+ * @param pid PidInstance_s指针，PID控制器实例
+ * @return 成功返回true，失败返回false
+ * @date 2025-07-01
+ */
+bool Pid_Enable(PidInstance_s *pid);
 
 #endif
