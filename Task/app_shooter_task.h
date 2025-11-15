@@ -16,7 +16,7 @@ typedef enum{
   SHOOTER_STOP=0,
   SHOOTER_START=1,
   SHOOTER_FIRING=2,
-  SHOOTER_RELOAD=3
+  SHOOTER_STUCK=3
 } ShooterState_t;
 
 

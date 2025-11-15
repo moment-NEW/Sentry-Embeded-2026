@@ -58,5 +58,7 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Sentry_libs\Bsp\Can\bsp_can.h \
   ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
   ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
+  ..\Task\dev_board_communicate.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
-  ..\Sentry_libs\Module\Com_System\Queue.h
+  ..\Sentry_libs\Module\Com_System\Queue.h ..\Task\app_command_task.h \
+  ..\Sentry_libs\Module\Minipc\dev_minipc.h

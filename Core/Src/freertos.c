@@ -51,6 +51,7 @@ osThreadId defaultTaskHandle;
 osThreadId IsttaskHandle;
 osThreadId Gimbal_TaskHandle;
 osThreadId ShooterTaskHandle;
+osThreadId CommandTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -61,6 +62,7 @@ void StartDefaultTask(void const * argument);
 void isttask(void const * argument);
 void StartGimbalTask(void const * argument);
 void StartShooterTask(void const * argument);
+void StartCommandTask(void const * argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -157,6 +159,10 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(ShooterTask, StartShooterTask, osPriorityIdle, 0, 512);
   ShooterTaskHandle = osThreadCreate(osThread(ShooterTask), NULL);
 
+  /* definition and creation of CommandTask */
+  osThreadDef(CommandTask, StartCommandTask, osPriorityAboveNormal, 0, 128);
+  CommandTaskHandle = osThreadCreate(osThread(CommandTask), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -235,6 +241,24 @@ __weak void StartShooterTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StartShooterTask */
+}
+
+/* USER CODE BEGIN Header_StartCommandTask */
+/**
+* @brief Function implementing the CommandTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartCommandTask */
+__weak void StartCommandTask(void const * argument)
+{
+  /* USER CODE BEGIN StartCommandTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartCommandTask */
 }
 
 /* Private application code --------------------------------------------------*/
