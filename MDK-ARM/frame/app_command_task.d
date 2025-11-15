@@ -1,5 +1,5 @@
-frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
-  ..\Task\app_gimbal_task.h \
+frame/app_command_task.o: ..\Task\app_command_task.c \
+  ..\Task\app_command_task.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\FreeRTOS.h \
   ..\Core\Inc\FreeRTOSConfig.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\projdefs.h \
@@ -14,6 +14,8 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
+  ..\Sentry_libs\Module\Dr16\dev_dr16.h \
+  ..\Sentry_libs\Bsp\Uart\bsp_uart.h ..\Core\Inc\usart.h \
   ..\Core\Inc\main.h ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
   ..\Core\Inc\stm32f4xx_hal_conf.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h \
@@ -46,15 +48,10 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h \
   ..\..\Sentry-Embeded-2026\robot_config.h \
-  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
-  ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Sentry_libs\Module\Dr16\dev_dr16.h \
-  ..\Sentry_libs\Bsp\Uart\bsp_uart.h ..\Core\Inc\usart.h \
-  ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
-  ..\Sentry_libs\Bsp\Can\bsp_can.h ..\Core\Inc\can.h \
-  ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
-  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
-  ..\Task\dev_board_communicate.h \
+  ..\Sentry_libs\Module\Minipc\dev_minipc.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
-  ..\Sentry_libs\Module\Com_System\Queue.h ..\Task\app_command_task.h \
-  ..\Sentry_libs\Module\Minipc\dev_minipc.h
+  ..\Sentry_libs\Module\Com_System\Queue.h \
+  ..\Task\dev_board_communicate.h ..\Sentry_libs\Bsp\Can\bsp_can.h \
+  ..\Core\Inc\can.h ..\Sentry_libs\Bsp\Log\bsp_log.h \
+  ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
+  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h

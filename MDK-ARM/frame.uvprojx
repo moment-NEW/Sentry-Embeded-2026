@@ -710,11 +710,6 @@
               <FilePath>..\Sentry_libs\Bsp\Can\bsp_can.h</FilePath>
             </File>
             <File>
-              <FileName>README.md</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Sentry_libs\Bsp\Can\README.md</FilePath>
-            </File>
-            <File>
               <FileName>bsp_fdcan.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Sentry_libs\Bsp\Fdcan\bsp_fdcan.c</FilePath>
@@ -938,6 +933,26 @@
               <FileName>app_shooter_task.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Task\app_shooter_task.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_command_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Task\app_command_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_command_task.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Task\app_command_task.h</FilePath>
+            </File>
+            <File>
+              <FileName>dev_board_communicate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Task\dev_board_communicate.c</FilePath>
+            </File>
+            <File>
+              <FileName>dev_board_communicate.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Task\dev_board_communicate.h</FilePath>
             </File>
           </Files>
         </Group>

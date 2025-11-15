@@ -340,12 +340,12 @@ void StartGimbalTask(void const * argument)
         
     }
 
-	   while (pitch->motor_state!=DM_ENABLE)
-    {
-        Motor_Dm_Cmd(pitch,  DM_CMD_MOTOR_ENABLE);
-        Motor_Dm_Transmit(pitch);
-        osDelay(1);
-    }
+//	   while (pitch->motor_state!=DM_ENABLE)
+//    {
+//        Motor_Dm_Cmd(pitch,  DM_CMD_MOTOR_ENABLE);
+//        Motor_Dm_Transmit(pitch);
+//        osDelay(1);
+//    }
     Log_Information("pitch motor enable success\r\n");
  
   for(;;)
@@ -401,17 +401,22 @@ void StartGimbalTask(void const * argument)
 				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case DISABLE_MODE:
+                Pid_Disable(Up_yaw->velocity_pid);
+                Pid_Disable(Up_yaw->angle_pid);
 				Motor_Dm_Cmd(pitch,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(pitch);
 				Motor_Dji_Control(Up_yaw,target_position);//暂时的逻辑
-			//其他同理
+			    
 			
-				Up_yaw->output=0;
+				
 				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case TRANS_MODE:
 	            Motor_Dm_Cmd(pitch, DM_CMD_MOTOR_ENABLE);
                 Motor_Dm_Transmit(pitch);
+                Pid_Enable(Up_yaw->angle_pid);
+                Pid_Enable(Up_yaw->velocity_pid);
+                
 				break;
 		}
 		

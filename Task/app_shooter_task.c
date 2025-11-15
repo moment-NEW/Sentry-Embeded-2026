@@ -135,8 +135,17 @@ void StartShooterTask(void const * argument)
   /* Infinite loop */
   for(;;)
   { 
-    
+    //单独设计一个卡弹检测，如果拨弹盘电机的电流输出高于某个阈值一段时间视为卡弹
     switch(Shooter_State){
+      case SHOOTER_STOP:
+        //清空PID
+      case SHOOTER_START:
+      //先检查摩擦轮电流，电流大于正常值的时候视为正在经历开火
+      case SHOOTER_FIRING:
+      //直到检测到电流小于某个值的时候再跳转回普通开火模式
+      case SHOOTER_STUCK:
+      //回转一段距离避免卡弹
+        break;
 			default:
 				break;
     }

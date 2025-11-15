@@ -135,35 +135,42 @@ void Board_Message_Decode(CanInstance_s *can_instance)
 
 static uint16_t float2half(float rawdata)
 {
-   uint16_t result;
-  
-
+    uint16_t result;
     FloatUnion fu;
     fu.f = rawdata; 
-    uint32_t f32_bits = fu.u;//提供32位整形的形式安全访问float
+    uint32_t f32_bits = fu.u;
 
-    // 从32位整数中提取 S, E, M
-    uint32_t sign_f32     = (f32_bits >> 31) & 0x01;//(实际不取也行，移位后已经是S了)
-    uint32_t exp_f32 = (f32_bits >> 23) & 0xFF;//这里如上，实际不用理论上也行
-    uint32_t mant_f32 =  f32_bits        & 0x7FFFFF;
-    //至此32位证书的S,E,M提取完毕
+    uint32_t sign_f32 = (f32_bits >> 31) & 0x01;
+    uint32_t exp_f32 = (f32_bits >> 23) & 0xFF;
+    uint32_t mant_f32 = f32_bits & 0x7FFFFF;
 
-    if(exp_f32 ==0){//处理特殊值0和无穷大
+    // 处理零值
+    if(exp_f32 == 0){
         result = (sign_f32 << 15);
         return result;
-        }else if(exp_f32==255){
-            result = (sign_f32 << 15) | 0x7C00 | (mant_f32 >> 13);
-            return result;
-            }
-        
-    if(exp_f32 > 142||exp_f32<113){//溢出,报错  （这里都是正数是因为偏移量不一致喵)
-        result = (sign_f32 << 15) | 0x7C00; //表示为无穷大
+    }
+    
+    // 处理无穷大和NaN
+    if(exp_f32 == 255){
+        result = (sign_f32 << 15) | 0x7C00 | (mant_f32 >> 13);
         return result;
     }
-    result = (uint16_t)(sign_f32 << 15) | ((exp_f32 - 112) << 10) | (mant_f32 >> 13);//122=127-15
-
+    
+    // 下溢，返回0
+    if(exp_f32 < 113){
+        result = (sign_f32 << 15);
+        return result;
+    }
+    
+    // 上溢，返回无穷大
+    if(exp_f32 > 142){
+        result = (sign_f32 << 15) | 0x7C00;
+        return result;
+    }
+    
+    // 正常转换
+    result = (uint16_t)(sign_f32 << 15) | ((exp_f32 - 112) << 10) | (mant_f32 >> 13);
     return result;
-   
 }
 //float的结构：1位符号位，8位指数位，23位尾数位
 //half的结构：1位符号位，5位指数位，10位尾数位
@@ -172,10 +179,25 @@ static uint16_t float2half(float rawdata)
 static float half2float(uint16_t halfdata)
 {
     float result;
-    uint32_t sign = (halfdata >> 15) & 0x1;//符号位
-    uint32_t exp = ((halfdata >> 10) & 0x1F) - 15 + 127;//指数位，半精度浮点偏移量（Bias）是 15,这个127是float偏移量（为了映射到正负数）
-    uint32_t mant = (halfdata & 0x3FF) << 13;//尾数位,移位后相当于把低10位放到高23位的位置上
-    uint32_t floatdata = (sign << 31) | (exp << 23) | mant;//重组32位float
+    uint32_t sign = (halfdata >> 15) & 0x1;
+    uint32_t exp = (halfdata >> 10) & 0x1F;
+    uint32_t mant = halfdata & 0x3FF;
+    
+    uint32_t floatdata;
+    
+    // 处理零值
+    if(exp == 0 && mant == 0){
+        floatdata = (sign << 31);
+    }
+    // 处理无穷大和NaN
+    else if(exp == 0x1F){
+        floatdata = (sign << 31) | (0xFF << 23) | (mant << 13);
+    }
+    // 正常值
+    else{
+        floatdata = (sign << 31) | ((exp - 15 + 127) << 23) | (mant << 13);
+    }
+    
     memcpy(&result, &floatdata, sizeof(float));
     return result;
 }

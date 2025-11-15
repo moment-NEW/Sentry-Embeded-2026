@@ -1,3 +1,5 @@
+#ifndef DEV_BOARD_COMMUNICATE_H
+#define DEV_BOARD_COMMUNICATE_H
 #include "FreeRTOS.h"
 #include <stdint.h> // 添加以支持 uint32_t
 
@@ -5,7 +7,7 @@
 #include "bsp_log.h"
 
 #include "Com_System.h"
-#include "app_command_task.h"
+
 #define BOARD_TX_ID_BASE 0x600
 //实际发送的id是 BOARD_TX_ID_BASE + board_id，接收的id是 BOARD_RX_ID_BASE + board_id
 #define BOARD_RX_ID_BASE 0x700
@@ -83,3 +85,5 @@ board_instance_t* board_init(board_config_t *config);
 // 发送函数需要明确传入要发送的数据
 void board_send_message(board_instance_t *instance, float data1, float data2, uint8_t flag1, uint8_t flag2);
 void Board_Message_Decode(CanInstance_s *can_instance);
+
+#endif
