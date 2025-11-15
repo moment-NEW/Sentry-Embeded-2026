@@ -949,6 +949,16 @@
               <FileType>5</FileType>
               <FilePath>..\Task\app_ins_task.h</FilePath>
             </File>
+            <File>
+              <FileName>dev_board_communicate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Task\dev_board_communicate.c</FilePath>
+            </File>
+            <File>
+              <FileName>dev_board_communicate.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Task\dev_board_communicate.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

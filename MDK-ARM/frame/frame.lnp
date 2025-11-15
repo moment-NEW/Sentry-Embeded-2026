@@ -76,6 +76,7 @@
 "frame\app_chassis_task.o"
 "frame\app_command_task.o"
 "frame\app_ins_task.o"
+"frame\dev_board_communicate.o"
 "frame\alg_pid.o"
 "frame\alg_chassis_calc.o"
 "frame\alg_kalman.o"

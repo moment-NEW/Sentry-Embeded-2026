@@ -22,12 +22,14 @@ board_instance_t *board_instance;
 uint8_t controlmode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
+float target_up_pitch=0.0;
 #else
 extern uint8_t mode;
 float target_position=0.641885281,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
 //float target1=0.0,target2=0.0,target3=0.0,target4=0.0;
-float target_up_position=0.0;
+float target_up_position=1.0;//暂时的逻辑，一定要记得改回来！！！！！
+float target_up_pitch=0.0;
 #endif
 uint8_t control_mode=RC_MODE;//默认遥控器模式
 
@@ -225,14 +227,18 @@ void StartChassisTask(void const * argument)
 		if (Down_yaw == NULL){
 				Log_Error("Chassis Register Failed!");
 		}
+  board_instance= board_init(&board_config);
+    if (board_instance == NULL) {
+        Log_Error("Board Register Failed!");
+    }
 		
 		
 		//循环使能
-		while(Down_yaw->motor_state!=DM_ENABLE){
-			Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
-			Motor_Dm_Transmit(Down_yaw);
-			osDelay(1);
-		}
+//		while(Down_yaw->motor_state!=DM_ENABLE){
+//			Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
+//			Motor_Dm_Transmit(Down_yaw);
+//			osDelay(1);
+//		}
 		uint32_t dwt2_cnt_last = 0;
 		float dt2 = 0.001f;  // 初始dt
 		dwt2_cnt_last = DWT->CYCCNT;

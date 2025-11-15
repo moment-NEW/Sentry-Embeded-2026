@@ -61,4 +61,5 @@ frame/app_chassis_task.o: ..\Task\app_chassis_task.c \
   ..\Drivers\CMSIS\Include\cmsis_compiler.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
-  ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Task\app_command_task.h
+  ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Task\dev_board_communicate.h \
+  ..\Task\app_command_task.h
