@@ -17,6 +17,7 @@ Subscriber *CH_Subs;
 Dr16Instance_s* CH_Receive_s;
 MiniPC_Instance *MiniPC;
 board_instance_t *board_instance;
+extern QEKF_INS_t QEKF_INS; 
 //变量声明
 #ifndef DEBUG
 uint8_t controlmode=DISABLE_MODE;
@@ -135,7 +136,7 @@ static ChassisInitConfig_s Chassis_config={
 	
 	//底盘大yaw电机配置
 	static DmMotorInitConfig_s Down_config = {
-//   .control_mode = DM_VELOCITY,     
+   //.control_mode = DM_VELOCITY,     
 	 .control_mode = DM_POSITION,
 		.topic_name = "down_yaw",
     .can_config = {
@@ -164,7 +165,7 @@ static ChassisInitConfig_s Chassis_config={
         .out_max = 400.0,
     }, 
     .velocity_pid_config = {
-        .kp = 1.7,
+        .kp = 1.0,
         .ki = 0.0005,
         .kd = 0.0,
         .kf = 0.0,
@@ -234,11 +235,11 @@ void StartChassisTask(void const * argument)
 		
 		
 		//循环使能
-//		while(Down_yaw->motor_state!=DM_ENABLE){
-//			Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
-//			Motor_Dm_Transmit(Down_yaw);
-//			osDelay(1);
-//		}
+		while(Down_yaw->motor_state!=DM_ENABLE){
+			Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
+			Motor_Dm_Transmit(Down_yaw);
+			osDelay(1);
+		}
 		uint32_t dwt2_cnt_last = 0;
 		float dt2 = 0.001f;  // 初始dt
 		dwt2_cnt_last = DWT->CYCCNT;
@@ -281,9 +282,14 @@ void StartChassisTask(void const * argument)
         Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
-				Chassis->Chassis_speed.Vy=CH_Receive_s->dr16_handle.ch2/132.0f;
+				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
         //大Yaw控制逻辑
+				Down_yaw->target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
+        target_position=target_position>3.1415926?-3.1451926:target_position;
+        target_position=target_position<-3.1415926?3.1451926:target_position;
+				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
+				//Motor_Dm_Control(Down_yaw,Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw*3.1415/360));
 				Motor_Dm_Control(Down_yaw,target_position);
 				test_output=Down_yaw->output;
 				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
@@ -298,6 +304,8 @@ void StartChassisTask(void const * argument)
 				Motor_Dm_Transmit(Down_yaw);
 				
         break;
+		//case SCROP_MODE:
+				
     case DISABLE_MODE:
 				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(Down_yaw);

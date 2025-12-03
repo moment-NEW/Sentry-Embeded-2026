@@ -72,10 +72,125 @@ PwmInitConfig_s pwm_config = {
 };
 
 
+
+
+
+
+
+
+
 //测试代码
 float test=0;
 
 //测试代码结束
+
+
+
+
+static float sensor_offset_r_body[3] = {0.0f, 0.0f, 0.0f}; // IMU 到旋转中心的偏移（m）
+static float last_gyro_filtered[3] = {0.0f, 0.0f, 0.0f};
+static float last_alpha_filtered[3] = {0.0f, 0.0f, 0.0f};
+static const float alpha_lpf_tau = 0.02f; // alpha LPF 时间常数 (s)
+static const float omega_thresh = 0.5f;   // 当 |ω| < 阈值时不补偿 (rad/s)
+
+/**
+ * @brief Transform 3dvector from BodyFrame to EarthFrame
+ * @param[1] vector in BodyFrame
+ * @param[2] vector in EarthFrame
+ * @param[3] quaternion
+ */
+void BodyFrameToEarthFrame(const float *vecBF, float *vecEF, float *q)
+{
+    vecEF[0] = 2.0f * ((0.5f - q[2] * q[2] - q[3] * q[3]) * vecBF[0] +
+                       (q[1] * q[2] - q[0] * q[3]) * vecBF[1] +
+                       (q[1] * q[3] + q[0] * q[2]) * vecBF[2]);
+
+    vecEF[1] = 2.0f * ((q[1] * q[2] + q[0] * q[3]) * vecBF[0] +
+                       (0.5f - q[1] * q[1] - q[3] * q[3]) * vecBF[1] +
+                       (q[2] * q[3] - q[0] * q[1]) * vecBF[2]);
+
+    vecEF[2] = 2.0f * ((q[1] * q[3] - q[0] * q[2]) * vecBF[0] +
+                       (q[2] * q[3] + q[0] * q[1]) * vecBF[1] +
+                       (0.5f - q[1] * q[1] - q[2] * q[2]) * vecBF[2]);
+}
+
+/**
+ * @brief Transform 3dvector from EarthFrame to BodyFrame
+ * @param[1] vector in EarthFrame
+ * @param[2] vector in BodyFrame
+ * @param[3] quaternion
+ */
+void EarthFrameToBodyFrame(const float *vecEF, float *vecBF, float *q)
+{
+    vecBF[0] = 2.0f * ((0.5f - q[2] * q[2] - q[3] * q[3]) * vecEF[0] +
+                       (q[1] * q[2] + q[0] * q[3]) * vecEF[1] +
+                       (q[1] * q[3] - q[0] * q[2]) * vecEF[2]);
+
+    vecBF[1] = 2.0f * ((q[1] * q[2] - q[0] * q[3]) * vecEF[0] +
+                       (0.5f - q[1] * q[1] - q[3] * q[3]) * vecEF[1] +
+                       (q[2] * q[3] + q[0] * q[1]) * vecEF[2]);
+
+    vecBF[2] = 2.0f * ((q[1] * q[3] + q[0] * q[2]) * vecEF[0] +
+                       (q[2] * q[3] - q[0] * q[1]) * vecEF[1] +
+                       (0.5f - q[1] * q[1] - q[2] * q[2]) * vecEF[2]);
+}
+
+/**
+ * @brief Compensate centrifugal and Euler acceleration from accelerometer
+ * @param[in] gyro_filtered Filtered gyro [3] (rad/s)
+ * @param[in] accel_filtered Filtered accel [3] (m/s^2)
+ * @param[in] dt Time step (s)
+ * @param[out] compensated_accel Compensated accel [3] (m/s^2)
+ */
+void compensate_centrifugal_accel(const float *gyro_filtered, const float *accel_filtered, float dt, float *compensated_accel)
+{
+    // 计算角加速度 alpha（rad/s^2），并低通
+    float alpha[3];
+    for (int i = 0; i < 3; ++i) {
+        alpha[i] = (gyro_filtered[i] - last_gyro_filtered[i]) / dt;
+        float alpha_lpf = last_alpha_filtered[i] + (dt / (alpha_lpf_tau + dt)) * (alpha[i] - last_alpha_filtered[i]);
+        last_alpha_filtered[i] = alpha_lpf;
+        alpha[i] = alpha_lpf;
+    }
+    // 更新 last_gyro_filtered
+    for (int i = 0; i < 3; ++i) {
+        last_gyro_filtered[i] = gyro_filtered[i];
+    }
+
+    // 计算离心和欧拉加速度（body frame）
+    float tmp[3] = {
+        gyro_filtered[1]*sensor_offset_r_body[2] - gyro_filtered[2]*sensor_offset_r_body[1],
+        gyro_filtered[2]*sensor_offset_r_body[0] - gyro_filtered[0]*sensor_offset_r_body[2],
+        gyro_filtered[0]*sensor_offset_r_body[1] - gyro_filtered[1]*sensor_offset_r_body[0]
+    };
+    float a_cent[3] = {
+        gyro_filtered[1]*tmp[2] - gyro_filtered[2]*tmp[1],
+        gyro_filtered[2]*tmp[0] - gyro_filtered[0]*tmp[2],
+        gyro_filtered[0]*tmp[1] - gyro_filtered[1]*tmp[0]
+    };
+    float a_euler[3] = {
+        alpha[1]*sensor_offset_r_body[2] - alpha[2]*sensor_offset_r_body[1],
+        alpha[2]*sensor_offset_r_body[0] - alpha[0]*sensor_offset_r_body[2],
+        alpha[0]*sensor_offset_r_body[1] - alpha[1]*sensor_offset_r_body[0]
+    };
+    float a_compensate[3] = { a_cent[0] + a_euler[0], a_cent[1] + a_euler[1], a_cent[2] + a_euler[2] };
+
+    // 选择性应用补偿
+    float omega_norm = sqrtf(gyro_filtered[0]*gyro_filtered[0] + gyro_filtered[1]*gyro_filtered[1] + gyro_filtered[2]*gyro_filtered[2]);
+    if (omega_norm > omega_thresh) {
+        for (int i = 0; i < 3; ++i) {
+            compensated_accel[i] = accel_filtered[i] - a_compensate[i];
+        }
+    } else {
+        for (int i = 0; i < 3; ++i) {
+            compensated_accel[i] = accel_filtered[i];
+        }
+    }
+}
+
+
+
+
 /**
  * @brief 1khz运行的INS任务
  * @details 该任务用于处理惯性导航系统（INS）的数据，执行卡尔曼滤波和姿态估计等操作。
@@ -193,8 +308,19 @@ void isttask(void const * argument)
             // 姿态解算 - 使用EKF进行姿态融合更新
             if (ins_initialized) {
                 // 使用EKF进行高精度姿态解算（融合陀螺仪和加速度计数据）
+                float compensated_accel[3];
+                compensate_centrifugal_accel(filtered_gyro, filtered_accel, dt, compensated_accel);
+                // 将补偿后的加速度从机体坐标系变换到地球坐标系，作为观测向量
+                float accel_earth[3];
+                BodyFrameToEarthFrame(compensated_accel, accel_earth, current_quaternion);
+                // 使用变换后的加速度更新 EKF（观测向量现在在地球坐标系）
                 IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
-                                        filtered_accel[0], filtered_accel[1], filtered_accel[2], dt);
+                                        accel_earth[0], accel_earth[1], accel_earth[2], dt);
+                // // 使用补偿后的加速度更新 EKF
+                // IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
+                //                         compensated_accel[0], compensated_accel[1], compensated_accel[2], dt);
+                // IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
+                //                         filtered_accel[0], filtered_accel[1], filtered_accel[2], dt);
                 
                 // 从EKF获取最优估计的四元数
                 current_quaternion[0] = QEKF_INS.q[0]; // w
@@ -299,7 +425,7 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
       Error_Handler();
     };
     //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
+    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 1000000,1,0);
     //初始化PID
   
     

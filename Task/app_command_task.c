@@ -51,11 +51,13 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
     
       mode = DISABLE_MODE;
     }
+		
       return mode;
       break;
     case 0x31:
     case 0x33:
-      
+			mode = last_mode==RC_MODE?SCROP_MODE:DISABLE_MODE;
+      return mode;
      
 
     default: // 其他所有情况 (包括 s1=2, s2在任意位置)

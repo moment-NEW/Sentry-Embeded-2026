@@ -185,7 +185,15 @@ void IMU_QuaternionEKF_Update(float gx, float gy, float gz, float ax, float ay, 
     QEKF_INS.IMU_QuaternionEKF.R_data[0] = QEKF_INS.R;
     QEKF_INS.IMU_QuaternionEKF.R_data[4] = QEKF_INS.R;
     QEKF_INS.IMU_QuaternionEKF.R_data[8] = QEKF_INS.R;
-
+    
+    // 如果不稳定则把 accel 对应量测清零，KF 会把它视为无效量测 => 只做预测
+    if (!QEKF_INS.StableFlag) {
+        QEKF_INS.IMU_QuaternionEKF.MeasuredVector[0] = 0.0f;
+        QEKF_INS.IMU_QuaternionEKF.MeasuredVector[1] = 0.0f;
+        QEKF_INS.IMU_QuaternionEKF.MeasuredVector[2] = 0.0f;
+        QEKF_INS.IMU_QuaternionEKF.MeasurementValidNum = 0;
+        QEKF_INS.IMU_QuaternionEKF.UseAutoAdjustment = 1;
+    }
     // 调用kalman_filter.c封装好的函数,注意几个User_Funcx_f的调用
     Kalman_Filter_Update(&QEKF_INS.IMU_QuaternionEKF);
 

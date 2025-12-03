@@ -22,6 +22,8 @@
 #include "dev_board_communicate.h"
 
 #include "app_command_task.h"
+#include "app_ins_task.h"
+
 
 //宏定义
 #define PC_MODE 1
