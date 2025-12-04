@@ -8,6 +8,9 @@
 
 
 #include "robot_config.h"
+
+// alg层
+#include "alg_SMC.h"
 // BSP层
 #include "bsp_log.h"
 #include "bsp_dwt.h"

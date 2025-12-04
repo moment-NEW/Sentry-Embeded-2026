@@ -192,12 +192,12 @@
         <Ww>
           <count>7</count>
           <WinNumber>1</WinNumber>
-          <ItemText>dt3</ItemText>
+          <ItemText>dt3,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>1</WinNumber>
-          <ItemText>\\frame\../Task/app_gimbal_task.c\Up_yaw-&gt;can_instance-&gt;can_handle</ItemText>
+          <ItemText>\\frame\../Task/app_gimbal_task.c\Up_yaw-&gt;can_instance-&gt;can_handle,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>9</count>
