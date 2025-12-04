@@ -74,7 +74,8 @@ static DmMotorInitConfig_s pitch_config = {
 static  DjiMotorInitConfig_s Up_config = {
     .id = 3 ,                      // 电机ID(1~4)
     .type = GM6020,               // 电机类型
-    .control_mode = DJI_POSITION,  // 电机控制模式
+   // .control_mode = DJI_POSITION,  // 电机控制模式
+	.control_mode = DJI_VELOCITY,
 		.topic_name = "up_yaw",
     .can_config = {
         .can_number = 2,
@@ -99,7 +100,7 @@ static  DjiMotorInitConfig_s Up_config = {
         .kd = 0.0,                        // 速度环微分系数
         .kf = 0.0,                        // 前馈系数
         .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
-        .i_max = 1000.0,                  // 积分限幅
+        .i_max = 4000.0,                  // 积分限幅
         .out_max = 16000,                // 输出限幅(电流输出)
     }
 };
@@ -270,61 +271,80 @@ float GenerateReversingRamp(float min_pos, float max_pos, int steps, uint32_t in
 
 
 
-float Forbidden_Zone(float start,float end,float current,float target,float circle_range){
-    static float last_target;
-    if(fabs(last_target - target) > 1e-2f){
-    last_target=target;
-    }else{
-        return last_target;
+float Forbidden_Zone(float start, float end, float current, float target, float circle_range) {
+    float erro = target - current;
+    float half_circle = circle_range / 2.0f;
+
+    // 1. 寻找最短路径 (处理 [-PI, PI] 过界问题)
+    if (erro > half_circle) {
+        erro -= circle_range; // 正向移动距离太长，反向走更近
+    } else if (erro < -half_circle) {
+        erro += circle_range; // 反向移动距离太长，正向走更近
     }
-	float erro=target-current;
-	uint8_t crosses_forbidden_zone=0;
-		 if (start < end && target >= start && target <= end) {//假设start<end,反正不是写库，将就着用了
-        
-        target = (target < (start + end) / 2.0f) ? start : end;
-    }
-	//手动实现过零保护,和PID里的不一样，修改target而不是current,这样方便后续更改
-    if (erro > circle_range / 2.0f) {
-        erro -= circle_range; // 例如: 从 10 度到 350 度，erro = 340。应该走 -20 度。 340 - 360 = -20
-    } else if (erro < -circle_range / 2.0f) {
-        erro += circle_range; // 例如: 从 350 度到 10 度，erro = -340。应该走 +20 度。 -340 + 360 = 20
-    }
-		float target_ture=current+erro;
-	if (start < end) {
-        // 从 current 沿 erro 方向移动是否会进入 [start, end] 区间
-        if (erro > 0 && current < start && target_ture > end) { // 正向移动穿过
+
+    float final_target_on_shortest_path = current + erro;
+    // 将最终目标归一化到 [-PI, PI] 范围内，以便于比较
+    if (final_target_on_shortest_path > half_circle) final_target_on_shortest_path -= circle_range;
+    if (final_target_on_shortest_path < -half_circle) final_target_on_shortest_path += circle_range;
+
+    uint8_t crosses_forbidden_zone = 0;
+
+    // 2. 检查最短路径是否穿越禁区
+    if (start < end) {
+        // 禁区是 [start, end]，不跨越 PI/-PI 边界
+        if (erro > 0 && current < start && final_target_on_shortest_path > end) { // 正向穿越
             crosses_forbidden_zone = 1;
-        } else if (erro < 0 && current > end && target_ture < start) { // 反向移动穿过
+        } else if (erro < 0 && current > end && final_target_on_shortest_path < start) { // 反向穿越
             crosses_forbidden_zone = 1;
         }
-    }
-    // 情况2：禁区跨越0度（例如, start=300, end=30）
-    else { 
-        // 此时禁区实际上是 [start, 360) 和 [0, end] 两个区间
-        if (erro > 0 && current < start && target_ture > end && target_ture < current) { // 正向移动，且跨越了0点
-             crosses_forbidden_zone = 1;
-        } else if (erro < 0 && current > end && target_ture < start && target_ture > current) { // 反向移动，且跨越了0点
-             crosses_forbidden_zone = 1;
+    } else { 
+        // 禁区跨越 PI/-PI 边界，为 [start, PI] U [-PI, end]
+        // 检查路径是否跨越了 PI/-PI 边界
+        if (erro > 0 && final_target_on_shortest_path < current) { // 正向移动，数值变小，说明从 PI 跨到 -PI
+            crosses_forbidden_zone = 1;
+        } else if (erro < 0 && final_target_on_shortest_path > current) { // 反向移动，数值变大，说明从 -PI 跨到 PI
+            crosses_forbidden_zone = 1;
         }
     }
 
-	if(crosses_forbidden_zone){
-		if(erro<0){
-			erro=erro+circle_range;
-		}else{
-			erro=erro-circle_range;
-		}
-	}
-    target_ture=current+erro;
-	return target_ture;
+    // 3. 如果最短路径穿越禁区，则选择另一条路径（长路径）
+    if (crosses_forbidden_zone) {
+        if (erro > 0) {
+            erro -= circle_range;
+        } else {
+            erro += circle_range;
+        }
+    }
+
+    // 4. 如果目标点本身就在禁区内，则移动到最近的禁区边界
+    if (start < end) {
+        if (target > start && target < end) {
+            return (fabs(target - start) < fabs(target - end)) ? start : end;
+        }
+    } else {
+        if (target > start || target < end) {
+            // 计算到两个边界的最短距离
+            float dist_to_start = start - target;
+            if (dist_to_start > half_circle) dist_to_start -= circle_range;
+            if (dist_to_start < -half_circle) dist_to_start += circle_range;
+
+            float dist_to_end = end - target;
+            if (dist_to_end > half_circle) dist_to_end -= circle_range;
+            if (dist_to_end < -half_circle) dist_to_end += circle_range;
+
+            return (fabs(dist_to_start) < fabs(dist_to_end)) ? start : end;
+        }
+    }
+
+    return current + erro;
 }
 
 void StartGimbalTask(void const * argument)
 {
 		#ifdef DEBUG
-    uint32_t dwt_cnt_last3 = 0;
-    float dt3 = 0.001f;  // 初始dt
-    static float lasttime3 = 0;
+    // uint32_t dwt_cnt_last3 = 0;
+    // float dt3 = 0.001f;  // 初始dt
+    // static float lasttime3 = 0;
     
     // 初始化DWT计数器
     dwt_cnt_last3 = DWT->CYCCNT;
@@ -340,28 +360,31 @@ void StartGimbalTask(void const * argument)
         
     }
 
-//	   while (pitch->motor_state!=DM_ENABLE)
-//    {
-//        Motor_Dm_Cmd(pitch,  DM_CMD_MOTOR_ENABLE);
-//        Motor_Dm_Transmit(pitch);
-//        osDelay(1);
-//    }
+	   while (pitch->motor_state!=DM_ENABLE)
+    {
+        Motor_Dm_Cmd(pitch,  DM_CMD_MOTOR_ENABLE);
+        Motor_Dm_Transmit(pitch);
+        osDelay(1);
+    }
     Log_Information("pitch motor enable success\r\n");
  
   for(;;)
   {
 		#ifdef DEBUG
-		test_speed=pitch->message.out_velocity;
-		test_position=pitch->message.out_position;
-		target_speed=pitch->angle_pid->output;
+		test_speed=Up_yaw->message.out_velocity;
+		test_position=Up_yaw->message.out_position;
+		target_speed=Up_yaw->angle_pid->output;
 		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
         // 限制dt范围，防止异常值
         if (dt3 > 0.01f || dt3 <= 0.0f) {
             dt3 = 0.001f;  // 默认1ms
         }
-			Pid_Disable(pitch->velocity_pid);
+			//Pid_Disable(pitch->velocity_pid);
 		#endif
+        ControlMode=board_instance->received_control_mode;
+
+
         board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
 		switch (ControlMode) {
 			case PC_MODE:
@@ -396,7 +419,7 @@ void StartGimbalTask(void const * argument)
 			
 			//大疆
 			  temp_position=target_up_position;
-	//		  temp_position=Forbidden_Zone(-0.1,1.1,Up_yaw->message.out_position,target_up_position,2*PI);
+			  //temp_position=Forbidden_Zone(2.97,-1.9,Up_yaw->message.out_position,target_up_position,2*PI);
 				Motor_Dji_Control(Up_yaw,temp_position);
 				Motor_Dji_Transmit(Up_yaw);
 				break;

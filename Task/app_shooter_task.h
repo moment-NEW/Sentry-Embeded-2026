@@ -11,6 +11,8 @@
 
 #include "dev_motor_dji.h"
 
+#define MAX_TORQUE 18.0f //正常状态下允许的电机最大扭矩
+
 //状态枚举,
 typedef enum{
   SHOOTER_STOP=0,
