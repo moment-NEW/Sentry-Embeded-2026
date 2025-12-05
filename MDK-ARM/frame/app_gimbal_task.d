@@ -46,6 +46,10 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h \
   ..\..\Sentry-Embeded-2026\robot_config.h \
+  ..\Sentry_libs\Algorithm\SMC\alg_SMC.h \
+  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
+  ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
+  ..\Drivers\CMSIS\Include\cmsis_compiler.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
   ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Sentry_libs\Module\Dr16\dev_dr16.h \

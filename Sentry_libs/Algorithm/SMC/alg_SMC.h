@@ -9,68 +9,47 @@
 #ifndef ALG_SMC_H
 #define ALG_SMC_H
 #include "stdint.h"
-#include "stm32h7xx_hal.h"
-#include "core_cm7.h"
 
-inline float Sat(float u,float k) {
-    if (u > 1.0f/k) return 1;
-    else if (u < -1.0f/k) return -1;
-    else return k*u;
-}
 
-inline float clamp(float u, float min, float max) {
-    if (u > max) return max;
-    if (u < min) return min;
-    return u;
-}
 
-// k=0.01
-inline float filter(float last_u,float u,float k) {
-    return last_u*(1-k)+u*k;
-}
+
 
 typedef struct {
     // 滑模面 s=alpha*x1+c*x2+beta*x2^(p/q)
-    float alpha;
-    float c;
-    float beta;
-    uint8_t p;
-    uint8_t q;
+    float alpha;// x1系数
+    float c;// x2系数
+    float beta;// x2^(p/q)系数
+    uint8_t p;// 分子
+    uint8_t q;// 分母
 
-    float k1;
-    float k2;
+    float k1;// 增强项系数
+    float k2;// 抗饱和项系数
     float k; // 决定sat区间
-    float J;
-    float i_max;
-    float out_max;
+    float J;// 惯量
+    float i_max;// 积分限幅
+    float out_max;// 输出限幅
 
-    float x1;
-    float x2;
-    float s_sum;
-
-    uint8_t flag;
+    float x1;// 位置误差
+    float x2;// 速度误差
+    float s_sum;// 滑模面积分
+		float s_test;//观察s的窗口变量
+	
+    uint8_t flag;// 初始化标志位
     float T; //采样周期
-    float torque;
-    float last_torque;
-    float last_omiga;
+    float torque;// 输出力矩
+    float last_torque;// 上次输出力矩
+    float last_omiga;// 上次角速度
 }SMC_s;
 
-
+/**
+ * @brief SMC控制器计算函数
+ * @param smc SMC控制器参数结构体指针
+ * @param theta 当前角度
+ * @param target_theta 目标角度
+ * @param omega 当前角速度
+ * @return float 输出力矩
+ */
 float SMC_Calc(SMC_s* smc, float theta, float target_theta, float omega);
 
-inline void DWT_Init(void) {
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // 允许 DWT
-    DWT->CYCCNT = 0;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; // 启用 cycle counter
-}
-
-inline uint32_t DWT_GetCycle(void) {
-    return DWT->CYCCNT;
-}
-
-inline float DWT_GetMicroseconds(uint32_t start, uint32_t end) {
-    uint32_t cycles = end - start;
-    return (float)cycles / (HAL_RCC_GetHCLKFreq() / 1e6f);
-}
 
 #endif //SMC_H

@@ -20,12 +20,17 @@ uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
+float fhan_speed=0.8f;
 uint8_t ControlMode= RC_MODE;
 float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_position=0.0;
 float target_pitch_position=0.0;
 float temp_position;
 float output=0;
+float flitered_speed=0.0,protect_position=0.0;
+static LowpassFilter_t *pitch_vel_filter = NULL;
+static float pitch_vel_lpf_cutoff = 30.0f;    // 截止频率（Hz），按需调整
+static float pitch_vel_sample_freq = 1000.0f; // 采样频率（Hz），默认1kHz
 #endif
 ////////////////////////////电机配置/////////////////////////////////////////
 
@@ -37,16 +42,16 @@ static DmMotorInitConfig_s pitch_config = {
     .can_config = {
         .can_number = 1,
 				.topic_name = "pitch",
-          .tx_id = 0x006,
+          .tx_id = 0x002,
         // .tx_id = 0x106,
-         .rx_id = 0x016,
+         .rx_id = 0x012,
          
         .can_module_callback = NULL,
     },
 		.parameters = {
-        .pos_max = 6.2831853,    // [查手册] 电机最大位置范围 (弧度)
-        .vel_max = 30.0f,    // [查手册] 电机最大速度范围 (弧度/秒)
-        .tor_max = 18.0f,    // [查手册] 电机最大扭矩范围 (N·m)
+        .pos_max = 12.5,    // [查手册] 电机最大位置范围 (弧度)
+        .vel_max = 10.0f,    // [查手册] 电机最大速度范围 (弧度/秒)
+        .tor_max = 28.0f,    // [查手册] 电机最大扭矩范围 (N·m)
         .kp_max  = 500.0f,   // [查手册] Kp增益最大值
         .kd_max  = 5.0f,     // [查手册] Kd增益最大值
         .kp_int  = 0.0f,  // [调试设定] 要发送给电机的Kp值 (仅MIT模式)
@@ -103,6 +108,23 @@ static  DjiMotorInitConfig_s Up_config = {
         .i_max = 4000.0,                  // 积分限幅
         .out_max = 16000,                // 输出限幅(电流输出)
     }
+};
+
+
+
+//SMC参数设置
+SMC_s smc_pitch={
+    .alpha=5.0f,
+    .c=2.0f,
+    .beta=0.01f,
+    .p=7,
+    .q=5,
+    .k1=1.0f,
+    .k2=0.1f,
+    .k=0.01f,
+    .J=0.01f,
+    .i_max=500.0f,
+    .out_max=2000.0f,
 };
 
 //限幅0.17-0
@@ -342,8 +364,8 @@ float Forbidden_Zone(float start, float end, float current, float target, float 
 void StartGimbalTask(void const * argument)
 {
 		#ifdef DEBUG
-    // uint32_t dwt_cnt_last3 = 0;
-    // float dt3 = 0.001f;  // 初始dt
+    uint32_t dwt_cnt_last3 = 0;
+     float dt3 = 0.001f;  // 初始dt
     // static float lasttime3 = 0;
     
     // 初始化DWT计数器
@@ -352,7 +374,12 @@ void StartGimbalTask(void const * argument)
 	
     pitch=Motor_DM_Register(&pitch_config);//4310
     Up_yaw=Motor_Dji_Register(&Up_config);//6020
-	
+
+	FilterInitConfig_t lpf_cfg;
+    lpf_cfg.filter_size = 0; // 对低通滤波器未使用
+    lpf_cfg.cutoff_freq = pitch_vel_lpf_cutoff;
+    lpf_cfg.sample_freq = pitch_vel_sample_freq;
+    pitch_vel_filter = LowpassFilter_Register(&lpf_cfg);
     
 		 if(Up_yaw==NULL)
     {
@@ -367,22 +394,32 @@ void StartGimbalTask(void const * argument)
         osDelay(1);
     }
     Log_Information("pitch motor enable success\r\n");
+
+
+
+
+
+   
  
   for(;;)
   {
 		#ifdef DEBUG
-		test_speed=Up_yaw->message.out_velocity;
-		test_position=Up_yaw->message.out_position;
-		target_speed=Up_yaw->angle_pid->output;
-		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
+		test_speed=pitch->message.out_velocity;
+		test_position=pitch->message.out_position;
+		target_speed=pitch->angle_pid->output;
+		dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
         // 限制dt范围，防止异常值
         if (dt3 > 0.01f || dt3 <= 0.0f) {
             dt3 = 0.001f;  // 默认1ms
         }
+         ///以下为测试部分///
+         smc_pitch.T=dt3;
+    
+         ///测试部分结束///
 			//Pid_Disable(pitch->velocity_pid);
 		#endif
-        ControlMode=board_instance->received_control_mode;
+        //ControlMode=board_instance->received_control_mode;
 
 
         board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
@@ -399,15 +436,24 @@ void StartGimbalTask(void const * argument)
 //       Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
 //			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
 			#endif
-			if(pitch->control_mode==DM_POSITION){
-				 target_position=target_position>1?1:target_position;
-				 target_position=target_position<0.0?0.0:target_position;
-				
-			}
-				
-			 Motor_Dm_Control(pitch,target_position);
-			
-			 output=pitch->output+G_feed(pitch->message.out_position);
+//			if(pitch->control_mode==DM_POSITION){
+//				 target_position=target_position>1?1:target_position;
+//				 target_position=target_position<0.0?0.0:target_position;
+//				
+//			}
+//				
+			 //Motor_Dm_Control(pitch,target_position);
+            //速度过一个低通滤波
+            LowpassFilter_Process(pitch_vel_filter, pitch->message.out_velocity, &flitered_speed);
+            
+            //运动规划
+            target_position = fhan_correct(pitch->message.out_position - target_position, flitered_speed, fhan_speed, dt3);
+            //过零保护
+            protect_position = pitch->message.out_position + 
+    (target_position - pitch->message.out_position > PI ? 2 * PI : 
+    (target_position - pitch->message.out_position < -PI ? -2 * PI : 0));
+            output= SMC_Calc(&smc_pitch, protect_position, target_position, flitered_speed);   
+			 //output=pitch->output+G_feed(pitch->message.out_position);
 				
             Motor_Dm_Mit_Control(pitch,0,0,output);
 				

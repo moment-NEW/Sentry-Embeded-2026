@@ -9,6 +9,27 @@
 #include "alg_SMC.h"
 #include "math.h"
 
+
+float Sat(float u,float k) {
+    if (u > 1.0f/k) return 1;
+    else if (u < -1.0f/k) return -1;
+    else return k*u;
+}
+
+float clamp(float u, float min, float max) {
+    if (u > max) return max;
+    if (u < min) return min;
+    return u;
+}
+
+// k=0.01
+float filter(float last_u,float u,float k) {
+    return last_u*(1-k)+u*k;
+}
+
+
+
+
 float real_rational_power(float x, int p, int q)
 {
     if (x >= 0.0) return powf(x, (float)p / q);
@@ -19,15 +40,15 @@ float real_rational_power(float x, int p, int q)
         return 0;           /* 或者你自己决定怎么处理 */
 }
 
-float SMC_Calc(SMC_s* smc, float theta, float target_theta, float omega, float target_omega) {
+float SMC_Calc(SMC_s* smc, float theta, float target_theta, float omega) {
     float x1 = target_theta - theta;
-    float x2 = target_omega - filter(smc->last_omiga,omega,0.1f);
+    float x2 = 0 - filter(smc->last_omiga,omega,0.1f);
 
     smc->x1 = x1;
     smc->x2 = x2;
 
     float s = smc->alpha * x1 + smc->c * x2 + smc->beta * (real_rational_power(x2,smc->p,smc->q));
-
+		
     smc->s_sum += smc->T*Sat(s, smc->k);
     smc->s_sum = clamp(smc->s_sum, -smc->i_max, smc->i_max);
 
@@ -40,32 +61,12 @@ float SMC_Calc(SMC_s* smc, float theta, float target_theta, float omega, float t
         smc->last_torque = smc->torque;
     }
     smc->torque = clamp(smc->torque, -smc->out_max, smc->out_max);
-    smc->torque = filter(smc->last_torque,smc->torque, 0.001f);
+    smc->torque = filter(smc->last_torque,smc->torque, 0.2f);
     smc->last_torque = smc->torque;
+		smc->s_test=s;//调试用
     return smc->torque;
 }
 
-inline float sgnf(float x){ return (x>0)-(x<0); }
 
-void TrjGen_Init(TrjGen* g, float theta0, float vmax, float amax){
-    g->theta = theta0; g->omega = 0; g->vmax = vmax; g->amax = amax;
-}
 
-// 每个控制周期调用，返回限速后的theta_ref，并可同时拿到omega_ref
-float TrjGen_Step(TrjGen* g, float theta_target, float dt){
-    float e = theta_target - g->theta;
-    float dir = sgnf(e);
 
-    // 为了能在目标前刹停，计算需要的制动速度上限
-    float v_stop = sqrtf(fmaxf(0.0f, 2.0f * g->amax * fabsf(e)));
-    float v_des  = dir * fminf(g->vmax, v_stop);
-
-    // 以amax限加速度地逼近期望速度
-    float dv = v_des - g->omega;
-    float dv_lim = fmaxf(-g->amax*dt, fminf(g->amax*dt, dv));
-    g->omega += dv_lim;
-
-    // 积分得到角度参考
-    g->theta += g->omega * dt;
-    return g->theta;
-}
