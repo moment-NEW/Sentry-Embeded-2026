@@ -61,7 +61,7 @@ float SMC_Calc(SMC_s* smc, float theta, float target_theta, float omega) {
         smc->last_torque = smc->torque;
     }
     smc->torque = clamp(smc->torque, -smc->out_max, smc->out_max);
-    smc->torque = filter(smc->last_torque,smc->torque, 0.2f);
+    smc->torque = filter(smc->last_torque,smc->torque, 0.93f);
     smc->last_torque = smc->torque;
 		smc->s_test=s;//调试用
     return smc->torque;

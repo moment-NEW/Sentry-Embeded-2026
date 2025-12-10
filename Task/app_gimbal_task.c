@@ -20,7 +20,7 @@ uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
-float fhan_speed=0.8f;
+float fhan_speed=1000.0f;
 uint8_t ControlMode= RC_MODE;
 float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_position=0.0;
@@ -31,6 +31,10 @@ float flitered_speed=0.0,protect_position=0.0;
 static LowpassFilter_t *pitch_vel_filter = NULL;
 static float pitch_vel_lpf_cutoff = 30.0f;    // 截止频率（Hz），按需调整
 static float pitch_vel_sample_freq = 1000.0f; // 采样频率（Hz），默认1kHz
+//路径规划用参数
+float ref_pos = 0.0f;
+float ref_vel = 0.0f;
+
 #endif
 ////////////////////////////电机配置/////////////////////////////////////////
 
@@ -62,7 +66,7 @@ static DmMotorInitConfig_s pitch_config = {
         .ki = 0.0015,
         .kd = 0.06,
         .kf = 0.0,
-        .angle_max = 2.0f * PI,
+        .angle_max = 0.0,
         .i_max = 100.0,
         .out_max = 400.0,
     },
@@ -447,12 +451,22 @@ void StartGimbalTask(void const * argument)
             LowpassFilter_Process(pitch_vel_filter, pitch->message.out_velocity, &flitered_speed);
             
             //运动规划
-            target_position = fhan_correct(pitch->message.out_position - target_position, flitered_speed, fhan_speed, dt3);
+            float planned_acc = fhan_correct(ref_pos - target_position, ref_vel, fhan_speed, dt3);
+
+            // 2. 积分更新规划器的状态 (生成轨迹)
+            ref_vel += planned_acc * dt3;   // 更新参考速度
+            ref_pos += ref_vel * dt3;       // 更新参考位置
+
+            // target_position = fhan_correct(pitch->message.out_position - target_position, flitered_speed, fhan_speed, dt3);
             //过零保护
+    //         protect_position = pitch->message.out_position + 
+    // (target_position - pitch->message.out_position > PI ? 2 * PI : 
+    // (target_position - pitch->message.out_position < -PI ? -2 * PI : 0));
             protect_position = pitch->message.out_position + 
-    (target_position - pitch->message.out_position > PI ? 2 * PI : 
-    (target_position - pitch->message.out_position < -PI ? -2 * PI : 0));
-            output= SMC_Calc(&smc_pitch, protect_position, target_position, flitered_speed);   
+                (ref_pos - pitch->message.out_position > PI ? 2 * PI : 
+                (ref_pos - pitch->message.out_position < -PI ? -2 * PI : 0));
+
+            output= SMC_Calc(&smc_pitch, protect_position, ref_pos, flitered_speed);   
 			 //output=pitch->output+G_feed(pitch->message.out_position);
 				
             Motor_Dm_Mit_Control(pitch,0,0,output);
