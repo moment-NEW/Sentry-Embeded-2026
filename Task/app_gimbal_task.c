@@ -12,7 +12,7 @@
 DmMotorInstance_s *pitch;
 DjiMotorInstance_s *Up_yaw;
 extern board_instance_t *board_instance;
-
+Sliding *smc_pitch;
 //变量声明
 uint8_t find_bool=0;
 #ifndef DEBUG
@@ -20,6 +20,7 @@ uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
+float s_test=0.0;
 float fhan_speed=1000.0f;
 uint8_t ControlMode= RC_MODE;
 float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
@@ -116,19 +117,22 @@ static  DjiMotorInitConfig_s Up_config = {
 
 
 
-//SMC参数设置
-SMC_s smc_pitch={
-    .alpha=5.0f,
-    .c=2.0f,
-    .beta=0.01f,
-    .p=7,
-    .q=5,
-    .k1=1.0f,
-    .k2=0.1f,
-    .k=0.01f,
-    .J=0.01f,
-    .i_max=500.0f,
-    .out_max=2000.0f,
+SlidingConfig sliding_pitch_config = {
+    .flag=EISMC,
+    .c1=5.0f,
+    .c2=5.0f,
+    .p = 7,
+    .q = 5,
+    .beta = 0.1f,
+    
+    .J = 0.01f,
+    .K = 1.0f,
+    .c = 5.0f,
+    .epsilon = 0.05f,
+    .limit = 1.0f,
+    .u_max = 10.0f,
+    
+    .pos_eps = 0.01f
 };
 
 //限幅0.17-0
@@ -384,6 +388,9 @@ void StartGimbalTask(void const * argument)
     lpf_cfg.cutoff_freq = pitch_vel_lpf_cutoff;
     lpf_cfg.sample_freq = pitch_vel_sample_freq;
     pitch_vel_filter = LowpassFilter_Register(&lpf_cfg);
+
+    smc_pitch=smc_register(&sliding_pitch_config);
+    
     
 		 if(Up_yaw==NULL)
     {
@@ -411,6 +418,7 @@ void StartGimbalTask(void const * argument)
 		test_speed=pitch->message.out_velocity;
 		test_position=pitch->message.out_position;
 		target_speed=pitch->angle_pid->output;
+        s_test=smc_pitch->s;
 		dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
         // 限制dt范围，防止异常值
@@ -418,7 +426,7 @@ void StartGimbalTask(void const * argument)
             dt3 = 0.001f;  // 默认1ms
         }
          ///以下为测试部分///
-         smc_pitch.T=dt3;
+         
     
          ///测试部分结束///
 			//Pid_Disable(pitch->velocity_pid);
@@ -457,7 +465,7 @@ void StartGimbalTask(void const * argument)
             ref_vel += planned_acc * dt3;   // 更新参考速度
             ref_pos += ref_vel * dt3;       // 更新参考位置
 
-            // target_position = fhan_correct(pitch->message.out_position - target_position, flitered_speed, fhan_speed, dt3);
+            
             //过零保护
     //         protect_position = pitch->message.out_position + 
     // (target_position - pitch->message.out_position > PI ? 2 * PI : 
@@ -465,8 +473,9 @@ void StartGimbalTask(void const * argument)
             protect_position = pitch->message.out_position + 
                 (ref_pos - pitch->message.out_position > PI ? 2 * PI : 
                 (ref_pos - pitch->message.out_position < -PI ? -2 * PI : 0));
-
-            output= SMC_Calc(&smc_pitch, protect_position, ref_pos, flitered_speed);   
+            //使用滑模控制器计算输出
+            smc_error_update_pos(smc_pitch, ref_pos,protect_position, flitered_speed);
+            output=  smc_calculate(smc_pitch);
 			 //output=pitch->output+G_feed(pitch->message.out_position);
 				
             Motor_Dm_Mit_Control(pitch,0,0,output);

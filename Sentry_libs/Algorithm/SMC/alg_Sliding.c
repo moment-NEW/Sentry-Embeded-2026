@@ -1,5 +1,7 @@
-#include "Sliding.h"
+#include "alg_Sliding.h"
 
+
+#define SMC_MAX_CNT 6
 static float smc_signal(float s) {
     if (s > 0.0f) return 1.0f;
     if (s < 0.0f) return -1.0f;
@@ -24,7 +26,7 @@ static void smc_out_continuation(Sliding *smc) {
 }
 
 void smc_init(Sliding *smc) {
-    if (!smc) return;
+    smc=pvPortMalloc(sizeof(Sliding));
     smc->param.J = 0.0f;
     smc->param.K = 0.0f;
     smc->param.c = 0.0f;
@@ -251,5 +253,52 @@ void smc_set_out(Sliding *smc, float out) {
 }
 
 const Sliding *smc_get_state_const(const Sliding *smc) {
+    return smc;
+}
+
+
+
+
+
+/**
+ * @brief 根据配置结构体初始化滑模控制器实例
+ * @param smc 滑模控制器实例指针
+ * @param config 配置结构体指针
+ * 
+ */
+void smc_init_with_config(Sliding *smc, const SlidingConfig *config) {
+    if (!config) return;
+    smc_init(smc);  // 先调用原init
+    // 根据flag调用相应set_param函数
+    switch (config->flag) {
+        case EXPONENT:
+            smc_set_param_exp(smc, config->J, config->K, config->c, config->epsilon, config->limit, config->u_max, config->flag, config->pos_eps);
+            break;
+        case POWER:
+            // 如果有power模式，添加类似调用
+            break;
+        case TFSMC:
+            smc_set_param_tfsmc(smc, config->J, config->K, config->p, config->q, config->beta, config->epsilon, config->limit, config->u_max, config->flag, config->pos_eps);
+            break;
+        case VELSMC:
+            // 速度模式参数需调整
+            break;
+        case EISMC:
+            smc_set_param_eismc(smc, config->J, config->K, config->c1, config->c2, config->epsilon, config->limit, config->u_max, config->flag, config->pos_eps);
+            break;
+    }
+}
+
+
+static uint8_t smc_idx = 0;
+static Sliding *smc_instances[SMC_MAX_CNT];
+
+Sliding *smc_register(SlidingConfig *config) {
+    if (!config || smc_idx >= SMC_MAX_CNT) return NULL;
+    Sliding *smc = (Sliding *)pvPortMalloc(sizeof(Sliding));  // 动态分配内存
+    if (!smc) return NULL;
+    memset(smc, 0, sizeof(Sliding));  // 清空内存
+    smc_init_with_config(smc, config);  // 使用配置初始化
+    smc_instances[smc_idx++] = smc;  // 添加到实例数组
     return smc;
 }

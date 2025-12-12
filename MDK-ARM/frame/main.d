@@ -51,9 +51,10 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\USB_DEVICE\Target\usbd_conf.h ..\Core\Inc\gpio.h \
   ..\Task\app_gimbal_task.h ..\..\Sentry-Embeded-2026\robot_config.h \
   ..\Sentry_libs\Algorithm\SMC\alg_SMC.h \
-  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
+  ..\Sentry_libs\Algorithm\SMC\alg_Sliding.h \
   ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
   ..\Drivers\CMSIS\Include\cmsis_compiler.h \
+  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
   ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Sentry_libs\Module\Dr16\dev_dr16.h \
@@ -65,4 +66,9 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Task\dev_board_communicate.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
   ..\Sentry_libs\Module\Com_System\Queue.h ..\Task\app_command_task.h \
-  ..\Sentry_libs\Module\Minipc\dev_minipc.h
+  ..\Sentry_libs\Module\Minipc\dev_minipc.h \
+  ..\USB_DEVICE\App\usbd_cdc_if.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Class\CDC\Inc\usbd_cdc.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ioreq.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_core.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ctlreq.h

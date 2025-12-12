@@ -1,7 +1,16 @@
 #ifndef SLIDING_H
 #define SLIDING_H
 
+
+
 #include <math.h>
+#include "stdint.h"
+
+#include "arm_math.h"
+
+
+#include "cmsis_os.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,6 +64,22 @@ typedef struct {
 } SlidingParam;
 
 typedef struct {
+    float J;
+    float K;
+    float c;
+    float c1;
+    float c2;
+    float p;
+    float q;
+    float beta;
+    float epsilon;
+    float limit;
+    float u_max;
+    float pos_eps;
+    Rmode flag;
+} SlidingConfig;
+
+typedef struct {
     float u;
     float s;
 
@@ -67,6 +92,7 @@ typedef struct {
     float limit;
 } Sliding;
 
+Sliding *smc_register(SlidingConfig *config);
 void smc_init(Sliding *smc);
 
 void smc_set_param_exp(Sliding *smc, float J, float K, float c, float epsilon, float limit, float u_max, Rmode flag, float pos_eps);
@@ -85,7 +111,7 @@ float smc_get_out(const Sliding *smc);
 void smc_set_out(Sliding *smc, float out);
 
 const Sliding *smc_get_state_const(const Sliding *smc);
-
+void smc_init_with_config(Sliding *smc, const SlidingConfig *config);
 #ifdef __cplusplus
 }
 #endif

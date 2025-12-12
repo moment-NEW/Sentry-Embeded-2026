@@ -1039,6 +1039,16 @@
               <FileType>5</FileType>
               <FilePath>..\Sentry_libs\Algorithm\SMC\alg_SMC.h</FilePath>
             </File>
+            <File>
+              <FileName>alg_Sliding.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\SMC\alg_Sliding.c</FilePath>
+            </File>
+            <File>
+              <FileName>alg_Sliding.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\SMC\alg_Sliding.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

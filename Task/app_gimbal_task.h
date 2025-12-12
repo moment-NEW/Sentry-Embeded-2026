@@ -11,6 +11,7 @@
 
 // alg层
 #include "alg_SMC.h"
+#include "alg_Sliding.h"
 #include "alg_fliter.h"
 // BSP层
 #include "bsp_log.h"
