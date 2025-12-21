@@ -9,7 +9,19 @@ static float smc_signal(float s) {
 }
 
 static float smc_sat(const Sliding *smc, float s) {
+    if (!smc) return 0.0f;
+
+    // 保护：epsilon 非法时退化为 sign(s)，避免除 0 或 NaN/Inf 传播
+    if (!isfinite(smc->param.epsilon) || smc->param.epsilon <= 0.0f || !isfinite(s)) {
+        return smc_signal(s);
+    }
+
     float y = s / smc->param.epsilon;
+    // 保护：limit 非法时同样退化为 sign
+    if (!isfinite(smc->limit) || smc->limit <= 0.0f || !isfinite(y)) {
+        return smc_signal(s);
+    }
+
     if (fabsf(y) <= smc->limit)
         return y;
     return smc_signal(y);
@@ -19,14 +31,20 @@ static void smc_out_continuation(Sliding *smc) {
     if (smc->param.K != 0.0f && smc->param.c2 != 0.0f) {
         smc->error.p_error_integral =
             (smc->param_last.K / smc->param.K) * (smc->param_last.c2 / smc->param.c2) * smc->error.p_error_integral;
-        smc->error.v_error_integral =
-            (smc->param_last.K / smc->param.K) * (smc->param_last.c / smc->param.c) * smc->error.v_error_integral;
+        // For v_error_integral scaling: use c1 if c is zero (EISMC mode), else use c
+        if (smc->param.c != 0.0f && smc->param_last.c != 0.0f) {
+            smc->error.v_error_integral =
+                (smc->param_last.K / smc->param.K) * (smc->param_last.c / smc->param.c) * smc->error.v_error_integral;
+        } else if (smc->param.c1 != 0.0f && smc->param_last.c1 != 0.0f) {
+            smc->error.v_error_integral =
+                (smc->param_last.K / smc->param.K) * (smc->param_last.c1 / smc->param.c1) * smc->error.v_error_integral;
+        }
     }
     smc->param_last = smc->param;
 }
 
 void smc_init(Sliding *smc) {
-    smc=pvPortMalloc(sizeof(Sliding));
+    
     smc->param.J = 0.0f;
     smc->param.K = 0.0f;
     smc->param.c = 0.0f;
@@ -115,6 +133,12 @@ void smc_error_update_pos(Sliding *smc, float target, float pos_now, float vol_n
     smc->error.tar_last = smc->error.tar_now;
 
     smc->error.p_error_integral += smc->error.p_error * SAMPLE_PERIOD;
+    // 增加积分限幅
+    if (smc->error.p_error_integral > P_ERROR_INTEGRAL_MAX) smc->error.p_error_integral = P_ERROR_INTEGRAL_MAX;
+    else if (smc->error.p_error_integral < -P_ERROR_INTEGRAL_MAX) smc->error.p_error_integral = -P_ERROR_INTEGRAL_MAX;
+    // 防护：检查积分是否为NaN/Inf
+    if (!isfinite(smc->error.p_error_integral)) smc->error.p_error_integral = 0.0f;
+
     smc->error.tar_differential_last = smc->error.tar_differential;
 }
 
@@ -125,6 +149,11 @@ void smc_error_update_vel(Sliding *smc, float target, float vol_now) {
 
     smc->error.v_error = vol_now - smc->error.tar_now;
     smc->error.v_error_integral += smc->error.v_error * SAMPLE_PERIOD;
+    // 增加积分限幅
+    if (smc->error.v_error_integral > V_ERROR_INTEGRAL_MAX) smc->error.v_error_integral = V_ERROR_INTEGRAL_MAX;
+    else if (smc->error.v_error_integral < -V_ERROR_INTEGRAL_MAX) smc->error.v_error_integral = -V_ERROR_INTEGRAL_MAX;
+    // 防护：检查积分是否为NaN/Inf
+    if (!isfinite(smc->error.v_error_integral)) smc->error.v_error_integral = 0.0f;
 
     smc->error.tar_last = smc->error.tar_now;
 }
@@ -162,73 +191,67 @@ float smc_calculate(Sliding *smc) {
     float u = 0.0f;
     float fun = 0.0f;
 
+    // 备份原始误差用于计算，但在死区内将其视为0
+    float p_err = smc->error.p_error;
+    float v_err = smc->error.v_error;
+
+    if (fabsf(p_err) < smc->error.pos_error_eps) {
+        p_err = 0.0f;
+        v_err = 0.0f; // 进入死区后通常也忽略微小速度波动
+    }
+
     switch (smc->flag) {
         case EXPONENT:
-            if (fabsf(smc->error.p_error) - smc->error.pos_error_eps < 0.0f) {
-                smc->error.p_error = 0.0f;
-                return 0.0f;
-            }
-            smc->s = smc->param.c * smc->error.p_error + smc->error.v_error;
+            smc->s = smc->param.c * p_err + v_err;
             fun = smc_sat(smc, smc->s);
-            u = smc->param.J * ((-smc->param.c * smc->error.v_error) - smc->param.K * smc->s - smc->param.epsilon * fun);
+            u = smc->param.J * ((-smc->param.c * v_err) - smc->param.K * smc->s - smc->param.epsilon * fun);
             break;
 
         case POWER:
-            if (fabsf(smc->error.p_error) - smc->error.pos_error_eps < 0.0f) {
-                smc->error.p_error = 0.0f;
-                return 0.0f;
-            }
-            smc->s = smc->param.c * smc->error.p_error + smc->error.v_error;
+            smc->s = smc->param.c * p_err + v_err;
             fun = smc_sat(smc, smc->s);
-            u = smc->param.J * ((-smc->param.c * smc->error.v_error)
+            u = smc->param.J * ((-smc->param.c * v_err)
                 - smc->param.K * smc->s
                 - smc->param.K * powf(fabsf(smc->s), smc->param.epsilon) * fun);
             break;
 
         case TFSMC: {
             static float pos_pow;
-            if (fabsf(smc->error.p_error) - smc->error.pos_error_eps < 0.0f) {
-                smc->error.p_error = 0.0f;
-                return 0.0f;
-            }
-            pos_pow = powf(fabsf(smc->error.p_error), smc->param.q / smc->param.p);
-            if (smc->error.p_error < 0.0f) pos_pow = -pos_pow;
+            pos_pow = powf(fabsf(p_err), smc->param.q / smc->param.p);
+            if (p_err < 0.0f) pos_pow = -pos_pow;
 
-            smc->s = smc->param.beta * pos_pow + smc->error.v_error;
+            smc->s = smc->param.beta * pos_pow + v_err;
             fun = smc_sat(smc, smc->s);
 
-            if (smc->error.p_error != 0.0f) {
+            if (fabsf(p_err) > 1e-6f) {
                 u = smc->param.J * (
                     smc->error.tar_differential_second
                     - smc->param.K * smc->s
                     - smc->param.epsilon * fun
-                    - smc->error.v_error * ((smc->param.q * smc->param.beta) * pos_pow) / (smc->param.p * smc->error.p_error)
+                    - v_err * ((smc->param.q * smc->param.beta) * pos_pow) / (smc->param.p * p_err)
                 );
             } else {
-                u = 0.0f;
+                u = -smc->param.J * smc->param.K * smc->s;
             }
             break;
         }
 
         case VELSMC:
-            smc->s = smc->error.v_error + smc->param.c * smc->error.v_error_integral;
+            smc->s = v_err + smc->param.c * smc->error.v_error_integral;
             fun = smc_sat(smc, smc->s);
             u = smc->param.J * (smc->error.tar_differential
-                - (smc->param.c * smc->error.v_error)
+                - (smc->param.c * v_err)
                 - smc->param.K * smc->s
                 - smc->param.epsilon * fun);
             break;
 
         case EISMC:
-            if (fabsf(smc->error.p_error) - smc->error.pos_error_eps < 0.0f) {
-                smc->error.p_error = 0.0f;
-                return 0.0f;
-            }
-            smc->s = smc->param.c1 * smc->error.p_error + smc->error.v_error + smc->param.c2 * smc->error.p_error_integral;
+            // EISMC 模式下，即使 p_err 为 0，积分项 p_error_integral 依然起作用
+            smc->s = smc->param.c1 * p_err + v_err + smc->param.c2 * smc->error.p_error_integral;
             fun = smc_sat(smc, smc->s);
             u = smc->param.J * (
-                (-smc->param.c1 * smc->error.v_error)
-                - smc->param.c2 * smc->error.p_error
+                (-smc->param.c1 * v_err)
+                - smc->param.c2 * p_err
                 - smc->param.K * smc->s
                 - smc->param.epsilon * fun
             );
@@ -236,6 +259,9 @@ float smc_calculate(Sliding *smc) {
     }
 
     smc->error.error_last = smc->error.p_error;
+
+    // 防护：检查输出是否为NaN/Inf
+    if (!isfinite(u)) u = 0.0f;
 
     if (u > smc->u_max) u = smc->u_max;
     if (u < -smc->u_max) u = -smc->u_max;

@@ -121,7 +121,7 @@ static  DjiMotorInitConfig_s Trigger_Config = {
     .control_mode = DJI_POSITION,
 		.topic_name = "Trigger",
     .can_config = {
-        .can_number = 2,
+        .can_number = 1,
 				.topic_name = "Trigger",              // can句柄
         .tx_id = 0x200,                     // 发送id 
         .rx_id = 0x203,                     // 接收id
@@ -248,7 +248,7 @@ void StartShooterTask(void const * argument)
       case SHOOTER_TEST:
         //测试模式，直接控制任何一个电机
 				if(test_flag==1){
-					pos_target_tr+=0.005;
+					pos_target_tr+=0.007;
 					pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
 					pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
 				}

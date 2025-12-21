@@ -13,6 +13,8 @@
 #include "alg_SMC.h"
 #include "alg_Sliding.h"
 #include "alg_fliter.h"
+// Include C SMC interface header
+#include "Sliding_C_Interface.h"
 // BSP层
 #include "bsp_log.h"
 #include "bsp_dwt.h"

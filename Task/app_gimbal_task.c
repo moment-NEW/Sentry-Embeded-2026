@@ -12,9 +12,12 @@
 DmMotorInstance_s *pitch;
 DjiMotorInstance_s *Up_yaw;
 extern board_instance_t *board_instance;
-Sliding *smc_pitch;
+
 //变量声明
 uint8_t find_bool=0;
+// SMC config pointers for Keil debugger monitoring
+SMC_Config *g_pitch_config = NULL;
+
 #ifndef DEBUG
 uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
@@ -119,20 +122,20 @@ static  DjiMotorInitConfig_s Up_config = {
 
 SlidingConfig sliding_pitch_config = {
     .flag=EISMC,
-    .c1=5.0f,
-    .c2=5.0f,
+    .c1=1.0f,      // 位置项权重
+    .c2=0.01f,     // 积分权重（降低到0.01，减小积分影响）
     .p = 7,
     .q = 5,
     .beta = 0.1f,
     
-    .J = 0.01f,
-    .K = 1.0f,
-    .c = 5.0f,
-    .epsilon = 0.05f,
-    .limit = 1.0f,
-    .u_max = 10.0f,
+    .J = 0.3f,     // 缩放因子（从0.03改到0.3，增大10倍！）
+    .K = 8.0f,     // 切换增益（从3.0改到8.0，增强驱动）
+    .c = 1.0f,     // 速度权重
+    .epsilon = 0.2f,   // 饱和平滑（从0.15改到0.2，更平滑）
+    .limit = 1.5f,  // 饱和限制（从1.0改到1.5，扩大范围）
+    .u_max = 10.0f, // 输出限幅（保持10，如果还饱和再增大）
     
-    .pos_eps = 0.01f
+    .pos_eps = 0.005f  // 死区
 };
 
 //限幅0.17-0
@@ -374,7 +377,7 @@ void StartGimbalTask(void const * argument)
 		#ifdef DEBUG
     uint32_t dwt_cnt_last3 = 0;
      float dt3 = 0.001f;  // 初始dt
-    // static float lasttime3 = 0;
+    
     
     // 初始化DWT计数器
     dwt_cnt_last3 = DWT->CYCCNT;
@@ -389,7 +392,21 @@ void StartGimbalTask(void const * argument)
     lpf_cfg.sample_freq = pitch_vel_sample_freq;
     pitch_vel_filter = LowpassFilter_Register(&lpf_cfg);
 
-    smc_pitch=smc_register(&sliding_pitch_config);
+    // Initialize SMC with C++ wrapper interface
+    smc_pitch_init();
+    smc_pitch_set_param_eismc(
+        sliding_pitch_config.J,
+        sliding_pitch_config.K,
+        sliding_pitch_config.c1,
+        sliding_pitch_config.c2,
+        sliding_pitch_config.epsilon,
+        sliding_pitch_config.limit,
+        sliding_pitch_config.u_max,
+        sliding_pitch_config.pos_eps
+    );
+    
+    // Bind live config pointers for Keil debugger monitoring
+    g_pitch_config = smc_pitch_config_bind();
     
     
 		 if(Up_yaw==NULL)
@@ -406,19 +423,17 @@ void StartGimbalTask(void const * argument)
     }
     Log_Information("pitch motor enable success\r\n");
 
+    // 初始化规划器位置，防止上电瞬间产生巨大误差
+    ref_pos = pitch->message.out_position;
+    ref_vel = 0.0f;
 
-
-
-
-   
- 
   for(;;)
   {
 		#ifdef DEBUG
 		test_speed=pitch->message.out_velocity;
 		test_position=pitch->message.out_position;
 		target_speed=pitch->angle_pid->output;
-        s_test=smc_pitch->s;
+        s_test=smc_pitch_get_s();
 		dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
         // 限制dt范围，防止异常值
@@ -437,13 +452,18 @@ void StartGimbalTask(void const * argument)
         board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
 		switch (ControlMode) {
 			case PC_MODE:
+            if(find_bool==0)break;
+                 temp_position=board_instance->received_target_up_yaw;
+			  //temp_position=Forbidden_Zone(2.97,-1.9,Up_yaw->message.out_position,target_up_position,2*PI);
+				Motor_Dji_Control(Up_yaw,temp_position);
+				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case RC_MODE:
 
 			//Pitch轴
 			//限幅
 				#ifdef DEBUG
-               
+       
 //       target_position=GenerateReversingRamp(0, 1, 50, 6000, 6000); //50个点，间隔2s，端点停止2s
 //       Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
 //			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
@@ -458,25 +478,34 @@ void StartGimbalTask(void const * argument)
             //速度过一个低通滤波
             LowpassFilter_Process(pitch_vel_filter, pitch->message.out_velocity, &flitered_speed);
             
-            //运动规划
-            float planned_acc = fhan_correct(ref_pos - target_position, ref_vel, fhan_speed, dt3);
+            // 1. 目标位置归一化 (确保在 -PI 到 PI)
+            while (target_position > PI)  target_position -= 2.0f * PI;
+            while (target_position < -PI) target_position += 2.0f * PI;
 
-            // 2. 积分更新规划器的状态 (生成轨迹)
-            ref_vel += planned_acc * dt3;   // 更新参考速度
-            ref_pos += ref_vel * dt3;       // 更新参考位置
+            // 2. 计算规划器误差 (最短路径处理)
+            float error_ref = ref_pos - target_position;
+            while (error_ref > PI)  error_ref -= 2.0f * PI;
+            while (error_ref < -PI) error_ref += 2.0f * PI;
 
-            
-            //过零保护
-    //         protect_position = pitch->message.out_position + 
-    // (target_position - pitch->message.out_position > PI ? 2 * PI : 
-    // (target_position - pitch->message.out_position < -PI ? -2 * PI : 0));
-            protect_position = pitch->message.out_position + 
-                (ref_pos - pitch->message.out_position > PI ? 2 * PI : 
-                (ref_pos - pitch->message.out_position < -PI ? -2 * PI : 0));
-            //使用滑模控制器计算输出
-            smc_error_update_pos(smc_pitch, ref_pos,protect_position, flitered_speed);
-            output=  smc_calculate(smc_pitch);
-			 //output=pitch->output+G_feed(pitch->message.out_position);
+            // 3. 运动规划 (TD)
+            float planned_acc = fhan_correct(error_ref, ref_vel, fhan_speed, dt3);
+            ref_vel += planned_acc * dt3;
+            ref_pos += ref_vel * dt3;
+
+            // 4. 规划位置归一化
+            while (ref_pos > PI)  ref_pos -= 2.0f * PI;
+            while (ref_pos < -PI) ref_pos += 2.0f * PI;
+
+            // 5. 计算控制器误差 (最短路径)
+            float p_error = pitch->message.out_position - ref_pos;
+            while (p_error > PI)  p_error -= 2.0f * PI;
+            while (p_error < -PI) p_error += 2.0f * PI;
+
+            // 6. 应用调试配置并更新 SMC 误差
+            smc_pitch_apply_config();
+            // 传入 (ref_pos + p_error) 作为当前位置，这样内部计算 (ref_pos + p_error) - ref_pos = p_error
+            smc_pitch_error_update(ref_pos, ref_pos + p_error, flitered_speed);
+            output = smc_pitch_calculate();
 				
             Motor_Dm_Mit_Control(pitch,0,0,output);
 				

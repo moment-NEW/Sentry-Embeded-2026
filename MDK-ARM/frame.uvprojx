@@ -1049,6 +1049,21 @@
               <FileType>5</FileType>
               <FilePath>..\Sentry_libs\Algorithm\SMC\alg_Sliding.h</FilePath>
             </File>
+            <File>
+              <FileName>Sliding.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\SMC\Sliding.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Sliding.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\SMC\Sliding.hpp</FilePath>
+            </File>
+            <File>
+              <FileName>Sliding_C_Interface.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\SMC\Sliding_C_Interface.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1168,5 +1183,14 @@
     </components>
     <files/>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>frame</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>

@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-#define SAMPLE_PERIOD 0.002f
+#define SAMPLE_PERIOD 0.001f
 #define V_ERROR_INTEGRAL_MAX 2000.0f
 #define P_ERROR_INTEGRAL_MAX 2000.0f
 
