@@ -38,7 +38,7 @@ static DmMotorInitConfig_s pitch_config = {
         .can_number = 2,
 				.topic_name = "pitch",
           .tx_id = 0x006,
-        // .tx_id = 0x106,
+         //.tx_id = 0x106,
          .rx_id = 0x016,
          
         .can_module_callback = NULL,
@@ -118,7 +118,8 @@ float G_feed(float position){
 	//[ 1.34165963 -1.72110943  0.29976696 -0.17707916]
 	//[2.319374, -3.015623, 0.755581, -0.311670]
 	//[1.549729, -2.003787, 0.406681, -0.285731]
-    float torque = 1.549729*position*position*position +  (-2.003787*position*position) +0.406681*position + ( -0.285731);
+	//[0.386597, -0.374320, -0.419100, 0.075079]（装了枪管的）
+    float torque = 0.386597*position*position*position +  (-0.374320*position*position) + -0.419100*position + ( 0.075079);
     return torque; 
 }
 ////////测试用代码///////////
@@ -342,9 +343,9 @@ float Forbidden_Zone(float start, float end, float current, float target, float 
 void StartGimbalTask(void const * argument)
 {
 		#ifdef DEBUG
-    // uint32_t dwt_cnt_last3 = 0;
-    // float dt3 = 0.001f;  // 初始dt
-    // static float lasttime3 = 0;
+     uint32_t dwt_cnt_last3 = 0;
+     float dt3 = 0.001f;  // 初始dt
+     static float lasttime3 = 0;
     
     // 初始化DWT计数器
     dwt_cnt_last3 = DWT->CYCCNT;
@@ -371,9 +372,9 @@ void StartGimbalTask(void const * argument)
   for(;;)
   {
 		#ifdef DEBUG
-		test_speed=Up_yaw->message.out_velocity;
-		test_position=Up_yaw->message.out_position;
-		target_speed=Up_yaw->angle_pid->output;
+		test_speed=pitch->message.out_velocity;
+		test_position=pitch->message.out_position;
+		target_speed=pitch->angle_pid->output;
 		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
         // 限制dt范围，防止异常值
@@ -382,7 +383,7 @@ void StartGimbalTask(void const * argument)
         }
 			//Pid_Disable(pitch->velocity_pid);
 		#endif
-        ControlMode=board_instance->received_control_mode;
+        //ControlMode=board_instance->received_control_mode;
 
 
         board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
@@ -395,9 +396,9 @@ void StartGimbalTask(void const * argument)
 			//限幅
 				#ifdef DEBUG
                
-//       target_position=GenerateReversingRamp(0, 1, 50, 6000, 6000); //50个点，间隔2s，端点停止2s
-//       Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
-//			Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
+//      target_position=GenerateReversingRamp(0, 1, 50, 6000, 6000); //50个点，间隔2s，端点停止2s
+//      Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
+			 Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
 			#endif
 			if(pitch->control_mode==DM_POSITION){
 				 target_position=target_position>1?1:target_position;
@@ -405,11 +406,11 @@ void StartGimbalTask(void const * argument)
 				
 			}
 				
-			 Motor_Dm_Control(pitch,target_position);
+			//  Motor_Dm_Control(pitch,target_position);
 			
-			 output=pitch->output+G_feed(pitch->message.out_position);
+			//  output=pitch->output+G_feed(pitch->message.out_position);
 				
-            Motor_Dm_Mit_Control(pitch,0,0,output);
+            // Motor_Dm_Mit_Control(pitch,0,0,output);
 				
 				
 				#ifdef DEBUG

@@ -142,7 +142,7 @@ void StartShooterTask(void const * argument)
       case SHOOTER_STOP:
         //清空PID
       case SHOOTER_START:
-      if(Trigger->message.torque_current>)
+      if(Trigger->message.torque_current>0)
       //先检查摩擦轮电流，电流大于正常值的时候视为正在经历开火
       case SHOOTER_FIRING:
       //直到检测到电流小于某个值的时候再跳转回普通开火模式
