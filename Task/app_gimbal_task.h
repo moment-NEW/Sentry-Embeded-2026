@@ -9,6 +9,10 @@
 
 #include "robot_config.h"
 
+
+//app层
+#include "app_ins_task.h"
+
 // alg层
 
 // BSP层
