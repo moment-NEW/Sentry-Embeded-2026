@@ -70,6 +70,7 @@ void board_send_message(board_instance_t *instance, float data1, float data2, ui
             up2down_message_t *msg = ACCESS_AS_STRUCT(instance, up2down_message_t);
             msg->findbool = flag1;
             msg->up_yaw_pos = float2half(data1);
+            msg->up_pitch_pos = float2half(data2);
             break;
         }
         default:
@@ -109,6 +110,7 @@ void Board_Message_Decode(CanInstance_s *can_instance)
             up2down_message_t *msg = ACCESS_AS_STRUCT(board_instance, up2down_message_t);
             board_instance->received_find_bool = msg->findbool;
             board_instance->received_up_yaw_pos = half2float(msg->up_yaw_pos);
+            board_instance->received_up_pitch_pos = half2float(msg->up_pitch_pos);
             break;
         }
         case 1: // 接收到 up2down_message_t
@@ -117,6 +119,7 @@ void Board_Message_Decode(CanInstance_s *can_instance)
             board_instance->received_control_mode = msg->control_mode;
             board_instance->received_shoot_bool = msg->shoot_bool;
             board_instance->received_target_up_yaw = half2float(msg->up_target);
+            board_instance->received_target_up_pitch = half2float(msg->up_pitch_target);
             board_instance->received_current_down_yaw = half2float(msg->down_yaw_pos);
             break;
         }
