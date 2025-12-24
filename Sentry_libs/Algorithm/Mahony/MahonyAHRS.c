@@ -2,7 +2,7 @@
 // Date			Author			Notes
 // 29/09/2011	SOH Madgwick    Initial release
 // 02/10/2011	SOH Madgwick	Optimised for reduced CPU load
-//¶ßÀ²aÃÎ 2023/3/27 Ä§¸Ä
+//ï¿½ï¿½ï¿½ï¿½aï¿½ï¿½ 2023/3/27 Ä§ï¿½ï¿½
 //-------------------------------------------------------------------------------------------
 // Header files
 
@@ -13,7 +13,7 @@
 #include "arm_math.h"
 //-------------------------------------------------------------------------------------------
 // Definitions
-//ÕâÀï¶¼ÊÇ¿ÉÒÔµ÷ÕûµÄ²ÎÊý
+//ï¿½ï¿½ï¿½ï¶¼ï¿½Ç¿ï¿½ï¿½Ôµï¿½ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½
 //---------------------------------------***********************************
 float twoKi;		// 2 * integral gain (Ki)
 float q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
@@ -301,10 +301,11 @@ void arm_atan2_f32(float y, float x,uint16_t* data) {
 void Mahony_computeAngles()
 {
 	roll_mahony=atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
-	roll_mahony *= 57.29578f;  
-	pitch_mahony =57.29578f * asinf(-2.0f * (q1*q3 - q0*q2));
+	//roll_mahony *= 57.29578f;  
+	pitch_mahony = asinf(-2.0f * (q1*q3 - q0*q2));
+	//pitch_mahony *= 57.29578f;
 	yaw_mahony=atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3); 
-	yaw_mahony *=57.29578f;
+	// yaw_mahony *=57.29578f;
 	anglesComputed = 1;
 }
 float getRoll() {

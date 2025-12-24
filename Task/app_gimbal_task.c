@@ -6,7 +6,7 @@
  */
 #include "app_gimbal_task.h"
 #define DEBUG
-
+#define IMU
 //实例声明
 //此处做了修改，现在完全不关心下云台电机
 DmMotorInstance_s *pitch;
@@ -21,11 +21,13 @@ float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
 uint8_t ControlMode= RC_MODE;
-float target_position=0.0,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
+float target_position=0.3,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_position=0.0;
 float target_pitch_position=0.0;
 float temp_position;
 float output=0;
+extern quaternions_struct_t Quater;
+extern uint8_t ready_flag;
 #endif
 ////////////////////////////电机配置/////////////////////////////////////////
 
@@ -52,7 +54,29 @@ static DmMotorInitConfig_s pitch_config = {
         .kp_int  = 0.0f,  // [调试设定] 要发送给电机的Kp值 (仅MIT模式)
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
+		#ifdef IMU
+		.angle_pid_config = {
+			
+        .kp = 17.0f,
+        .ki = 0.0f,
+        .kd = 0.06f,
+        .kf = 0.0f,
+        .angle_max = 2.0f * PI,
+        .i_max = 100.0,
+        .out_max = 400.0,
+    },
+    .velocity_pid_config = {
+        .kp = 0.5f,
+        .ki = 0.0f,
+        .kd = 0.06f,
+        .kf = 0.0f,
+        .angle_max = 0,
+        .i_max = 5.0,
+        .out_max = 10.0,//待商议
+    }
+		#else
     .angle_pid_config = {
+			
         .kp = 17,
         .ki = 0.0015,
         .kd = 0.06,
@@ -70,6 +94,7 @@ static DmMotorInitConfig_s pitch_config = {
         .i_max = 500.0,
         .out_max = 2000.0,//待商议
     }
+		#endif
 };
 static  DjiMotorInitConfig_s Up_config = {
     .id = 3 ,                      // 电机ID(1~4)
@@ -368,13 +393,21 @@ void StartGimbalTask(void const * argument)
         osDelay(1);
     }
     Log_Information("pitch motor enable success\r\n");
- 
+    while(ready_flag==0){
+        //视情况要不要启用编码器控制
+        // Motor_Dm_Control(pitch,target_position);
+        // output=pitch->output+G_feed(pitch->message.out_position);
+				
+        // Motor_Dm_Mit_Control(pitch,0,0,output);
+        // Motor_Dm_Transmit(pitch);
+        osDelay(1);
+    }
   for(;;)
   {
 		#ifdef DEBUG
 		test_speed=pitch->message.out_velocity;
 		test_position=pitch->message.out_position;
-		target_speed=pitch->angle_pid->output;
+		//target_speed=pitch->angle_pid->output;
 		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
         // 限制dt范围，防止异常值
@@ -394,23 +427,39 @@ void StartGimbalTask(void const * argument)
 
 			//Pitch轴
 			//限幅
-				#ifdef DEBUG
+		    #ifdef DEBUG
                
 //      target_position=GenerateReversingRamp(0, 1, 50, 6000, 6000); //50个点，间隔2s，端点停止2s
 //      Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
-			 Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
+			// Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
 			#endif
 			if(pitch->control_mode==DM_POSITION){
+                #ifndef IMU
 				 target_position=target_position>1?1:target_position;
 				 target_position=target_position<0.0?0.0:target_position;
-				
+                #else
+                    target_position=target_position>0.3?0.3:target_position;
+                    target_position=target_position<-0.7?-0.7:target_position;
+				#endif
 			}
+			#ifndef IMU
+			  Motor_Dm_Control(pitch,target_position);
+            
+            #else 
+            if(ready_flag==1){
+                target_speed=Pid_Calculate(pitch->angle_pid,target_position,Quater.pitch);
+            
+            pitch->output = Pid_Calculate(pitch->velocity_pid,Quater.gryo_pitch,target_speed);//速度反向，IMU和编码器方向相反
+			 
+            }else{
+                pitch->angle_pid->i_out=0.0;
+                pitch->velocity_pid->i_out=0.0;
+                pitch->output=0;
+            }
+			#endif 
+            output=pitch->output+G_feed(pitch->message.out_position);
 				
-			//  Motor_Dm_Control(pitch,target_position);
-			
-			//  output=pitch->output+G_feed(pitch->message.out_position);
-				
-            // Motor_Dm_Mit_Control(pitch,0,0,output);
+           Motor_Dm_Mit_Control(pitch,0,0,output);
 				
 				
 				#ifdef DEBUG

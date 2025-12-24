@@ -22,7 +22,9 @@
 #endif
 //extern Ist8310Instance_s *asdf;
 char tx_buff[128];  // 足够大的缓冲区
+uint8_t ready_flag=0;//姿态解算完成标志
 PidInstance_s *ins_pid;
+
 uint8_t test_data[5]={0,0,0,0,0};
 quaternions_struct_t Quater;//四元数
 Bmi088Instance_s *bmi088_test;
@@ -257,7 +259,10 @@ void isttask(void const * argument)
                 // 更新全局四元数结构体
                 Quater.roll = getRoll();     // 横滚角（度）
                 Quater.pitch = getPitch();   // 俯仰角（度）
-                Quater.yaw = getYaw();   
+                Quater.yaw = getYaw(); 
+                Quater.gryo_pitch=bmi088_test->gyro[1];//陀螺仪角速度数据
+                Quater.gryo_yaw=bmi088_test->gyro[2];//陀螺仪角速度数据 
+                ready_flag=1;//姿态解算完成标志 
                 #ifdef DEBUG
                 sprintf(tx_buff, "channels:%.6f,%.6f,%.6f\n", Quater.roll, Quater.pitch, Quater.yaw);
                  HAL_UART_Transmit(&huart1, (uint8_t*)tx_buff, strlen(tx_buff), HAL_MAX_DELAY);

@@ -45,14 +45,26 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h \
-  ..\..\Sentry-Embeded-2026\robot_config.h \
+  ..\..\Sentry-Embeded-2026\robot_config.h ..\Task\app_ins_task.h \
+  ..\Sentry_libs\Module\Ist8310\dev_ist_8310.h \
+  ..\Sentry_libs\Bsp\I2c\bsp_iic.h ..\Core\Inc\i2c.h \
+  ..\Sentry_libs\Bsp\GPIO\bsp_gpio.h ..\Core\Inc\gpio.h \
+  ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
+  ..\Drivers\CMSIS\Include\cmsis_compiler.h \
+  ..\Sentry_libs\Algorithm\Kalman\alg_quaternionEKF.h \
+  ..\Sentry_libs\Algorithm\Kalman\kalman_filter.h \
+  ..\Sentry_libs\Algorithm\Mahony\MahonyAHRS.h \
+  ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
+  ..\Sentry_libs\Module\BMI088\dev_bmi088.h \
+  ..\Sentry_libs\Bsp\SPI\bsp_spi.h ..\Core\Inc\spi.h \
+  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
+  ..\Sentry_libs\Bsp\PWM\bsp_pwm.h ..\Core\Inc\tim.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
   ..\Sentry_libs\Bsp\DWT\bsp_dwt.h ..\Sentry_libs\Module\Dr16\dev_dr16.h \
   ..\Sentry_libs\Bsp\Uart\bsp_uart.h ..\Core\Inc\usart.h \
   ..\Sentry_libs\Module\Motor\Dm\dev_motor_dm.h \
   ..\Sentry_libs\Bsp\Can\bsp_can.h ..\Core\Inc\can.h \
-  ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
   ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
   ..\Task\dev_board_communicate.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \

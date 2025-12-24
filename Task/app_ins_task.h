@@ -48,6 +48,8 @@ typedef struct
       float32_t pitch;   // 俯仰角（度）
     float32_t yaw;     // 偏航角（度）
     acceleration Acc;  // 保留加速度数据
+    float32_t gryo_pitch;// 陀螺仪角速度数据
+    float32_t gryo_yaw; // 陀螺仪角速度数据
 }quaternions_struct_t;
 
 
@@ -91,6 +93,7 @@ uint8_t get_ekf_status(void);
  */
 
 // 全局变量声明
+extern uint8_t ready_flag;                    // 姿态解算完成标志
 extern quaternions_struct_t Quater;           // 四元数结构体
 extern PidInstance_s *ins_pid;                // INS PID控制器
 extern uint8_t test_data[5];                  // 磁力计测试数据
