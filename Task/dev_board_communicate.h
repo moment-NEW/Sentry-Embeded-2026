@@ -30,7 +30,7 @@ typedef struct{
     uint16_t reserved:7;    // 保留位
     uint16_t up_target:16;   // 上云台目标角度(半精度)
     uint16_t down_yaw_pos:16;// 下云台当前角度(半精度)
-    uint16_t reserved2:16;   // 保留位
+    uint16_t up_pitch_target:16;   // 上云台目标俯仰角（半精度）
 } down2up_message_t;
 
 /**
@@ -40,7 +40,7 @@ typedef struct{
     uint8_t findbool:1;     // 0-未找到，1-找到
     uint16_t reserved:15;    // 保留位
     uint16_t up_yaw_pos:16;  // 上云台当前角度(半精度)
-    uint16_t reserved2:16;   // 保留位
+    uint16_t up_pitch_pos:16;   // 上云台当前俯仰角(半精度)
     uint16_t reserved3:16;   // 保留位
 } up2down_message_t;
 
@@ -62,9 +62,12 @@ typedef struct
     uint8_t received_control_mode;
     uint8_t received_shoot_bool;
     float   received_target_up_yaw;
+    float   received_target_up_pitch;
     float   received_current_down_yaw;
     uint8_t received_find_bool;
     float   received_up_yaw_pos;
+    float   received_up_pitch_pos;
+
 
 } board_instance_t;
 

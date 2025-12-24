@@ -11,8 +11,18 @@
 #ifndef DEV_MINIPC_H
 #define DEV_MINIPC_H
 #include <stdint.h>
-#include "Com_System.h" //包含消息中心的头文件
+#include <string.h>
+#include <stdio.h>
 
+#include "robot_config.h"
+
+#include "FreeRTOS.h"
+#include "Com_System.h" //包含消息中心的头文件
+#include "usbd_cdc_if.h"
+
+
+
+#include "bsp_log.h"
 // 设置结构体按1字节对齐
 #pragma pack(1)
 //如果定义哨兵模式的话，大部分代码才会启用
@@ -54,6 +64,7 @@
 typedef enum {
     // 接收消息类型
     USB_MSG_AIM_RX = 0xA0,          // 自瞄数据接收
+    USB_MSG_EXP_AIM_RX = 0xEF,      //具有前馈的自瞄数据接收
     #ifdef SENTRY_MODE
     USB_MSG_CHASSIS_RX = 0xA1,      // 底盘数据接收  
     USB_MSG_GAME_RX = 0xA2,         // 比赛信息接收
@@ -61,6 +72,7 @@ typedef enum {
     #endif
     
     // 发送消息类型
+    USB_MSG_EXP_AIM_TX = 0xE0,      // 具有前馈的自瞄云台反馈
     USB_MSG_AIM_TX = 0xB0,          // 自瞄云台反馈
     #ifdef SENTRY_MODE
     USB_MSG_FRIEND1_TX = 0xB1,      // 我方机器人位置1
@@ -104,6 +116,23 @@ typedef struct {
     uint8_t reserved[17];      // 14 - 30 预留空位（填充0）
     char end;                  // 31 帧尾，取 'e'
 } Chassis_package;
+
+
+typedef struct {
+    char start;                // 0 帧头，取 's'
+    char datatype;             // 1 消息类型 0xEF
+    uint8_t find_bool;         // 2 是否追踪
+    float yaw;                 // 3 - 6 偏航角
+    float pitch;               // 7 - 10 俯仰角
+    float accel_yaw;               // 11 - 14 前馈加速度
+    float accel_pitch;           // 15 - 18 偏航前馈加速度
+    float vel_yaw;               // 19 - 22 偏航前馈速度
+    float vel_pitch;           // 23 - 26 俯仰前馈速度
+    uint8_t reserved[4];      // 27 - 30 预留空位（填充0）
+    char end;                  // 31 帧尾，取 'e'
+} exp_aim_package;
+
+
 #ifdef SENTRY_MODE
 typedef struct {
     char start;                // 0 帧头，取 's'
@@ -267,7 +296,8 @@ typedef struct {
 } launch_status_package;
 #endif
 typedef union {
-    Computer_Rx_Message_t norm_aim_pack;        // 自瞄
+    Computer_Rx_Message_t norm_aim_pack;
+    exp_aim_package exp_aim_pack;            // 具有前馈的自瞄        // 自瞄
     #ifdef SENTRY_MODE
     Chassis_package ch_pack;                    // 底盘
 
@@ -287,6 +317,18 @@ typedef struct {
     uint8_t* rune_flag;
     float* low_gimbal_yaw;
 } USB_AimTx_DataSource_t;
+
+typedef struct {
+    uint8_t* mode;              // 2 模式    0: 空闲, 1: 自瞄, 2: 小符, 3: 大符
+    float* yaw;                 // 3 - 6 偏航角 
+    float* yaw_vel;             // 7 - 10 偏航角速度
+    float* pitch;               // 11 - 14 俯仰角
+    float* pitch_vel;           // 15 - 18 俯仰角速度
+    float* bullet_speed;        // 19 - 22 子弹速度
+    uint16_t* bullet_count;     // 23 - 24子弹累计发送次数
+    
+} USB_ExpAimTx_DataSource_t;
+
 #ifdef SENTRY_MODE
 typedef struct {
     float* infantry_3_x;
@@ -316,6 +358,7 @@ typedef struct {
 // 统一的数据源联合体
 typedef union {
     USB_AimTx_DataSource_t aim_tx;
+    USB_ExpAimTx_DataSource_t exp_aim_tx;
     #ifdef SENTRY_MODE
     USB_FriendPos1_DataSource_t friend_pos_1;
     USB_RedHP_DataSource_t red_hp;
@@ -337,8 +380,24 @@ typedef struct {
     char end;                  // 31 帧尾，取 'e'
 } Computer_Tx_Message_t;
 
+typedef struct {
+    char start;                // 0 帧头，取 's'
+    char datatype;             // 1 消息类型 0xE0
+    uint8_t mode;              // 2 模式    0: 空闲, 1: 自瞄, 2: 小符, 3: 大符
+    float yaw;                 // 3 - 6 偏航角 
+    float yaw_vel;             // 7 - 10 偏航角速度
+    float pitch;               // 11 - 14 俯仰角
+    float pitch_vel;           // 15 - 18 俯仰角速度
+    float bullet_speed;        // 19 - 22 子弹速度
+    uint16_t bullet_count;     // 23 - 24子弹累计发送次数
+    uint8_t reserved[6];       // 25 - 30 预留空位（填充0）
+    char end;                  // 31 帧尾，取 'e'
+} exp_tx_aim_package;
+
+
 typedef union {
     Computer_Tx_Message_t self_aim_pack;        // 自瞄
+    exp_tx_aim_package exp_aim_pack;        // 具有前馈的自瞄
     #ifdef SENTRY_MODE
     friendly_position_1_package friend_pos_1;   // 我方位置1
     friendly_position_2_package friend_pos_2;   // 我方位置2
@@ -380,7 +439,13 @@ typedef struct
 
 // 简化的配置函数声明
 void Minipc_ConfigAimTx(MiniPC_Instance* instance, float* high_yaw, float* pitch, uint8_t* enemy_color, uint8_t* mode, uint8_t* rune_flag, float* low_yaw);
-
+void Minipc_ConfigExpAimTx(MiniPC_Instance* instance,uint8_t* mode,
+    float* yaw,            
+    float* yaw_vel,          
+    float* pitch,               
+    float* pitch_vel,           
+    float* bullet_speed,     
+    uint16_t* bullet_count);
 #ifdef SENTRY_MODE
 void Minipc_ConfigFriendPos1Tx(MiniPC_Instance* instance, float* inf3_x, float* inf3_y, float* inf4_x, float* inf4_y, float* inf5_x, float* inf5_y);
 void Minipc_ConfigRedHPTx(MiniPC_Instance* instance, uint16_t* red1_hp, uint16_t* red2_hp, uint16_t* red3_hp, uint16_t* red4_hp, uint16_t* red5_hp, uint16_t* red7_hp);
