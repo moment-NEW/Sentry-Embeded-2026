@@ -5,6 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "FreeRTOS.h"
+
+// Fixed install/coordinate offset for chassis forward direction (radians).
+// Use this to compensate constant heading bias (e.g. 45deg => 0.785398f) without altering gimbal_yaw_zero.
+#ifndef CHASSIS_YAW_OFFSET_RAD
+#define CHASSIS_YAW_OFFSET_RAD (0.0f)
+#endif
+
+float err=0.0f;
 /**
  * @brief 检查底盘配置参数合法性
  * @param config 底盘配置结构体指针
@@ -156,17 +164,13 @@ static void Chassis_IK_Calc(ChassisInstance_s *Chassis)
  * @brief 计算云台角度误差（相对于零点）
  * @param Chassis 底盘实例指针
  * @return 角度误差值（弧度）
- * @note 将角度误差限制在[-π, π]范围内
- * @date 2025-07-09
+ * @note 将角度误差限制在[-π, π]范围内，哨兵这里加个45度来修正试试看
+ * @date 2025-12-17
  */
 static float Find_Angle(ChassisInstance_s *Chassis)
 {
-	float err = Chassis->gimbal_yaw_angle-Chassis->gimbal_yaw_zero;
-          err = fmodf(err + 3.141593f, 2.0f * 3.141593f);
-    if (err < 0){
-        err += 2 *3.141593f;
-    }
-        err -= 3.141593f;
+	 err = (Chassis->gimbal_yaw_angle - Chassis->gimbal_yaw_zero) + CHASSIS_YAW_OFFSET_RAD;
+	
     return err;
 }
 
@@ -279,10 +283,9 @@ bool Chassis_Control(ChassisInstance_s *Chassis)
         break;
     }
     // 2. 坐标系转换
-    Temp_Speed.Vx = -Chassis->Chassis_speed.Vx *cosf(Find_Angle(Chassis)) - Chassis->Chassis_speed.Vy * sinf(Find_Angle(Chassis));
-    Temp_Speed.Vy =  Chassis->Chassis_speed.Vx *sinf(Find_Angle(Chassis)) - Chassis->Chassis_speed.Vy * cosf(Find_Angle(Chassis));
+    Temp_Speed.Vx =  Chassis->Chassis_speed.Vx *cosf(Find_Angle(Chassis)) - Chassis->Chassis_speed.Vy * sinf(Find_Angle(Chassis));
+    Temp_Speed.Vy =  Chassis->Chassis_speed.Vx *sinf(Find_Angle(Chassis)) + Chassis->Chassis_speed.Vy * cosf(Find_Angle(Chassis));
     Temp_Speed.Vw =  Chassis->Chassis_speed.Vw;
-
     // 3. 执行运动学逆解
     Chassis_IK_Calc(Chassis);
 

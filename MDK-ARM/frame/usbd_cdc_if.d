@@ -38,5 +38,15 @@ frame/usbd_cdc_if.o: ..\USB_DEVICE\App\usbd_cdc_if.c \
   ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_core.h \
   ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ctlreq.h \
   ..\Sentry_libs\Module\Minipc\dev_minipc.h \
+  ..\..\Sentry-Embeded-2026\robot_config.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\include\FreeRTOS.h \
+  ..\Core\Inc\FreeRTOSConfig.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\include\projdefs.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\include\portable.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\include\deprecated_definitions.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\portable\RVDS\ARM_CM4F\portmacro.h \
+  ..\Middlewares\Third_Party\FreeRTOS\Source\include\mpu_wrappers.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
-  ..\Sentry_libs\Module\Com_System\Queue.h
+  ..\Sentry_libs\Module\Com_System\Queue.h \
+  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
+  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h

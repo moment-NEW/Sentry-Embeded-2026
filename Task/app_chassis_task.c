@@ -16,8 +16,10 @@ DmMotorInstance_s *Down_yaw;
 Subscriber *CH_Subs;
 Dr16Instance_s* CH_Receive_s;
 MiniPC_Instance *MiniPC;
+MiniPC_Instance *MiniPC_SelfAim;
 board_instance_t *board_instance;
 extern QEKF_INS_t QEKF_INS; 
+uint8_t enemy_color =1;//暂时的逻辑
 //变量声明
 #ifndef DEBUG
 uint8_t controlmode=DISABLE_MODE;
@@ -26,18 +28,18 @@ float target_up_position=0.0;
 float target_up_pitch=0.0;
 #else
 extern uint8_t mode;
-float target_position=0.641885281,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
+float target_position=0.0f,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
 //float target1=0.0,target2=0.0,target3=0.0,target4=0.0;
-float target_up_position=1.0;//暂时的逻辑，一定要记得改回来！！！！！
-float target_up_pitch=0.0;
+float target_up_position=0.3f;//暂时的逻辑，一定要记得改回来！！！！！
+float target_up_pitch=0.0f;
 #endif
 uint8_t control_mode=RC_MODE;//默认遥控器模式
 
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
-		.gimbal_yaw_zero =  0.641885281,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
+		.gimbal_yaw_zero =  0.0f,//0.641885281,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
 		//.gimbal_yaw_half = 0.130077288,//(251481.0f / 262144.0f) * 2.0f * 3.141593f
 		.omni_steering_message={
 		.wheel_radius= 0.0765f,
@@ -156,19 +158,19 @@ static ChassisInitConfig_s Chassis_config={
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 8.5,
-        .ki = 0.0,
-        .kd = 0.0,
-        .kf = 0.0,
+        .kp = 8.0f,
+        .ki = 0.0f,
+        .kd = 0.0f,
+        .kf = 0.0f,
         .angle_max = 2.0f * PI,
         .i_max = 100.0,
         .out_max = 400.0,
     }, 
     .velocity_pid_config = {
-        .kp = 1.0,
-        .ki = 0.0005,
-        .kd = 0.0,
-        .kf = 0.0,
+        .kp = 1.0f,
+        .ki = 0.0005f,
+        .kd = 0.0f,
+        .kf = 0.0f,
         .angle_max = 0,
         .i_max = 1000.0,
         .out_max = 2000.0,
@@ -177,8 +179,14 @@ static ChassisInitConfig_s Chassis_config={
 
 MiniPC_Config miniPC_config = {
     .callback = NULL,
-    .message_type = USB_MSG_CHASSIS_RX, // 自瞄数据
-    .Send_message_type = NULL // 发送数据类型
+    .message_type = USB_MSG_CHASSIS_RX, // 底盘数据
+    .Send_message_type = USB_MSG_AIM_TX // 发送数据类型
+};
+
+MiniPC_Config SelfAim_config = {
+    .callback = NULL,
+    .message_type = USB_MSG_EXP_AIM_RX, // 底盘数据
+    .Send_message_type = USB_MSG_EXP_AIM_TX // 发送数据类型
 };
 
 
@@ -221,9 +229,11 @@ void StartChassisTask(void const * argument)
         Log_Error("Chassis Register Failed!");
     }
   MiniPC = Minipc_Register(&miniPC_config);
-    if (MiniPC == NULL) {
+	MiniPC_SelfAim = Minipc_Register(&SelfAim_config);	
+    if (MiniPC == NULL||MiniPC_SelfAim==NULL) {
         Log_Error("MiniPC Register Failed!");
     }
+		
 	Down_yaw = Motor_DM_Register(&Down_config);
 		if (Down_yaw == NULL){
 				Log_Error("Chassis Register Failed!");
@@ -240,7 +250,17 @@ void StartChassisTask(void const * argument)
 			Motor_Dm_Transmit(Down_yaw);
 			osDelay(1);
 		}
-		uint32_t dwt2_cnt_last = 0;
+		Minipc_ConfigAimTx(MiniPC,&board_instance->received_up_yaw_pos,&board_instance->received_up_pitch_pos,
+                        &enemy_color,&control_mode,
+                        NULL,&Down_yaw->message.out_position);//这里可能引入悬空指针，但是似乎没影响程序运行，后面再管。
+		
+    
+      
+     //施工中，可能需要修改板间通信，我现在写的太烂了拓展性很差                   
+    //Minipc_ConfigExpAimTx(MiniPC_SelfAim,)
+    
+    
+    uint32_t dwt2_cnt_last = 0;
 		float dt2 = 0.001f;  // 初始dt
 		dwt2_cnt_last = DWT->CYCCNT;
   /* Infinite loop */
@@ -264,7 +284,9 @@ void StartChassisTask(void const * argument)
 		Get_Message(CH_Subs,CH_Receive_s);
 		
 		control_mode=mode;
-    board_send_message(board_instance,Down_yaw->message.out_position ,target_up_position, control_mode, 0);//暂时将shootbool改为0
+    target_up_position=MiniPC_SelfAim->message.exp_aim_pack.yaw;
+    target_up_pitch=MiniPC_SelfAim->message.exp_aim_pack.pitch;
+    board_send_message(board_instance,Down_yaw->message.out_position ,target_up_position,target_up_pitch, control_mode, 0);//暂时将shootbool改为0
     switch (control_mode)
     {
     case PC_MODE:
@@ -285,9 +307,9 @@ void StartChassisTask(void const * argument)
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
         //大Yaw控制逻辑
-				Down_yaw->target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
-        target_position=target_position>3.1415926?-3.1451926:target_position;
-        target_position=target_position<-3.1415926?3.1451926:target_position;
+				target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
+        target_position=target_position>PI?target_position-2*PI:target_position;
+        target_position=target_position<-PI?target_position+2*PI:target_position;
 				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
 				//Motor_Dm_Control(Down_yaw,Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw*3.1415/360));
 				Motor_Dm_Control(Down_yaw,target_position);
@@ -321,4 +343,4 @@ void StartChassisTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StartChassisTask */
-}
+}                                                                                         
