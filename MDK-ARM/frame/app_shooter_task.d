@@ -14,6 +14,10 @@ frame/app_shooter_task.o: ..\Task\app_shooter_task.c \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
+  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
+  ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
+  ..\Drivers\CMSIS\Include\cmsis_compiler.h \
+  ..\Drivers\CMSIS\Include\cmsis_armclang.h \
   ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
   ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
   ..\Sentry_libs\Bsp\Can\bsp_can.h \

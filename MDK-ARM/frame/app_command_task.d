@@ -51,7 +51,14 @@ frame/app_command_task.o: ..\Task\app_command_task.c \
   ..\Sentry_libs\Module\Minipc\dev_minipc.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
   ..\Sentry_libs\Module\Com_System\Queue.h \
+  ..\USB_DEVICE\App\usbd_cdc_if.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Class\CDC\Inc\usbd_cdc.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ioreq.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_def.h \
+  ..\USB_DEVICE\Target\usbd_conf.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_core.h \
+  ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ctlreq.h \
+  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
+  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
   ..\Task\dev_board_communicate.h ..\Sentry_libs\Bsp\Can\bsp_can.h \
-  ..\Core\Inc\can.h ..\Sentry_libs\Bsp\Log\bsp_log.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h
+  ..\Core\Inc\can.h
