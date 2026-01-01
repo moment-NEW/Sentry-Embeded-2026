@@ -22,6 +22,7 @@ float target_up_position=0.0;
 #else
 uint8_t ControlMode= RC_MODE;
 float target_position=0.3,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
+float target_up_speed=0.0;//yaw目标速度（用于IMU下）
 float target_up_position=0.0;
 float target_pitch_position=0.0;
 float temp_position;
@@ -97,7 +98,7 @@ static DmMotorInitConfig_s pitch_config = {
 		#endif
 };
 static  DjiMotorInitConfig_s Up_config = {
-    .id = 3 ,                      // 电机ID(1~4)
+    .id = 1 ,                      // 电机ID(1~4)
     .type = GM6020,               // 电机类型
    // .control_mode = DJI_POSITION,  // 电机控制模式
 	.control_mode = DJI_VELOCITY,
@@ -105,14 +106,14 @@ static  DjiMotorInitConfig_s Up_config = {
     .can_config = {
         .can_number = 2,
 				.topic_name = "up_yaw",              // can句柄
-        .tx_id = 0x1FE,                     // 发送id 
-        .rx_id = 0x207,                     // 接收id
+        .tx_id = 0x1FF,                     // 发送id 
+        .rx_id = 0x205,                     // 接收id
     },
     .reduction_ratio = 1,              // 减速比
 
     .angle_pid_config = {
-        .kp = 160.0,                        // 位置环比例系数
-        .ki = 0.0,                        // 位置环积分系数
+        .kp = 25.0,                        // 位置环比例系数
+        .ki = 0.03,                        // 位置环积分系数
         .kd = 0.0,                        // 位置环微分系数
         .kf = 0.0,                        // 前馈系数
         .angle_max = 0.0f,                 // 角度最大值(限幅用，为0则不限幅)
@@ -120,13 +121,13 @@ static  DjiMotorInitConfig_s Up_config = {
         .out_max = 400.0,                 // 输出限幅(速度环输入)
     },
     .velocity_pid_config = {
-        .kp = 0.0,//100.0,                       // 速度环比例系数
+        .kp = 2300.0,//100.0,                       // 速度环比例系数
         .ki = 0.0,                        // 速度环积分系数
         .kd = 0.0,                        // 速度环微分系数
         .kf = 0.0,                        // 前馈系数
         .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
-        .i_max = 4000.0,                  // 积分限幅
-        .out_max = 16000,                // 输出限幅(电流输出)
+        .i_max = 6000.0,                  // 积分限幅
+        .out_max = 25000,                // 输出限幅(电流输出)
     }
 };
 
@@ -367,7 +368,7 @@ float Forbidden_Zone(float start, float end, float current, float target, float 
 
 void StartGimbalTask(void const * argument)
 {
-		#ifdef DEBUG
+	#ifdef DEBUG
      uint32_t dwt_cnt_last3 = 0;
      float dt3 = 0.001f;  // 初始dt
      static float lasttime3 = 0;
@@ -405,8 +406,8 @@ void StartGimbalTask(void const * argument)
   for(;;)
   {
 		#ifdef DEBUG
-		test_speed=pitch->message.out_velocity;
-		test_position=pitch->message.out_position;
+		test_speed=Up_yaw->message.out_velocity;
+		test_position=Up_yaw->message.out_position;
 		//target_speed=pitch->angle_pid->output;
 		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
@@ -420,6 +421,7 @@ void StartGimbalTask(void const * argument)
 
 
         board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
+        ControlMode=board_instance->received_control_mode;
 		switch (ControlMode) {
 			case PC_MODE:
 				break;
@@ -470,12 +472,21 @@ void StartGimbalTask(void const * argument)
 			//大疆
 			  temp_position=target_up_position;
 			  //temp_position=Forbidden_Zone(2.97,-1.9,Up_yaw->message.out_position,target_up_position,2*PI);
-				Motor_Dji_Control(Up_yaw,temp_position);
+				
+                #ifndef IMU
+                Motor_Dji_Control(Up_yaw,temp_position);
+                #else
+                target_up_speed=Pid_Calculate(Up_yaw->angle_pid,temp_position,Up_yaw->message.out_position);
+                Up_yaw->output=Pid_Calculate(Up_yaw->velocity_pid, target_up_speed, Quater.gryo_yaw);
+                #endif
+
 				Motor_Dji_Transmit(Up_yaw);
 				break;
 			case DISABLE_MODE:
                 Pid_Disable(Up_yaw->velocity_pid);
                 Pid_Disable(Up_yaw->angle_pid);
+                Pid_Disable(pitch->velocity_pid);
+                Pid_Disable(pitch->angle_pid);
 				Motor_Dm_Cmd(pitch,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(pitch);
 				Motor_Dji_Control(Up_yaw,target_position);//暂时的逻辑
@@ -489,6 +500,8 @@ void StartGimbalTask(void const * argument)
                 Motor_Dm_Transmit(pitch);
                 Pid_Enable(Up_yaw->angle_pid);
                 Pid_Enable(Up_yaw->velocity_pid);
+                Pid_Enable(pitch->angle_pid);
+                Pid_Enable(pitch->velocity_pid);
                 
 				break;
 		}

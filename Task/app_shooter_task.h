@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 
+#include "app_command_task.h"
 
 #include "alg_fliter.h"
 
@@ -17,9 +18,9 @@
 #define MAX_TORQUE 18.0f //正常状态下允许的电机最大扭矩
 #define FIRING_TORQUE 22.0f //开火状态下允许的电机最大扭矩
 #define FIRE_ORIGIN 0.0f//拨弹盘原点位置
-#define SHOOTER_RANGE 0.58f//一颗弹丸的位置
+#define SHOOTER_RANGE 0.007//0.58f//一颗弹丸的位置
 #define HEAT_MAX 260;
-
+#define SHOOTER_WHEEL_SPEED 4000.0f;//射击轮目标速度
 //状态枚举,
 typedef enum{
   SHOOTER_TEST=-1,

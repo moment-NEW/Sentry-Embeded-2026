@@ -72,7 +72,7 @@ frame/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Task\dev_board_communicate.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
   ..\Sentry_libs\Module\Com_System\Queue.h ..\Task\app_command_task.h \
-  ..\Sentry_libs\Module\Minipc\dev_minipc.h \
+  ..\Task\app_shooter_task.h ..\Sentry_libs\Module\Minipc\dev_minipc.h \
   ..\USB_DEVICE\App\usbd_cdc_if.h \
   ..\Middlewares\ST\STM32_USB_Device_Library\Class\CDC\Inc\usbd_cdc.h \
   ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ioreq.h \

@@ -67,10 +67,12 @@ static bool Motor_Dji_Grouping(uint32_t tx_id, CAN_HandleTypeDef *can_handle, ui
  * @date 2025-07-04
  */
 static void Motor_Dji_Decode(CanInstance_s *can_instance){
-    if(can_instance == NULL){
+     if(can_instance == NULL){
         return;
     }
     DjiMotorInstance_s *motor = can_instance->parent_ptr; // 获取电机实例
+    
+    // 1. 更新转子位置记录
     if(motor->message.rotor_position != 0){
         motor->message.rotor_last_position = motor->message.rotor_position;
     }
@@ -79,36 +81,38 @@ static void Motor_Dji_Decode(CanInstance_s *can_instance){
     motor->message.torque_current = (int16_t)(can_instance->rx_buff[4] << 8 | can_instance->rx_buff[5]);
     motor->message.temperature = can_instance->rx_buff[6];
 
+    // 计算输出轴速度
     motor->message.out_velocity = motor->message.rotor_velocity / motor->reduction_ratio;
 
-
-
-    // 把转子角度转化为输出轴角度
-    int res1=0, res2=0;
-    if(motor->message.rotor_position < motor->message.rotor_last_position){
-        res1 = motor->message.rotor_position + DJI_ECD_ANGLE_MAX - motor->message.rotor_last_position;    //正转，delta=+
-        res2 = motor->message.rotor_position - motor->message.rotor_last_position;                        //反转    delta=-
-    }
-    else{
-        res1 = motor->message.rotor_position - motor->message.rotor_last_position;                        //正转    delta +
-        res2 = motor->message.rotor_position - DJI_ECD_ANGLE_MAX - motor->message.rotor_last_position ;   //反转    delta -
-    }
-    //不管正反转，肯定是转的角度小的那个是真的
-    if(abs(res1)<abs(res2))
-        motor->message.total_angle += res1;
-    else
-        motor->message.total_angle += res2;
-    if(abs(motor->message.total_angle) > FLOAT_MAX){
-        motor->message.total_angle = 0;
+    // 2. 处理过零点，计算转子转过的差值 (delta)
+    int32_t delta = 0; // 使用int32防止计算过程溢出
+    int32_t diff = motor->message.rotor_position - motor->message.rotor_last_position;
+    
+    // 如果差值超过半圈(4096)，说明发生了过零点
+    if (diff > 4096) {
+        delta = diff - 8192;
+    } else if (diff < -4096) {
+        delta = diff + 8192;
+    } else {
+        delta = diff;
     }
 
-    int16_t out_position = motor->message.total_angle;
-    while(out_position < 0)
-       out_position += DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
-    while(out_position > DJI_ECD_ANGLE_MAX*motor->reduction_ratio)
-        out_position -= DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
-		
-    motor->message.out_position =out_position*DJI_ECD_ANGLE_COEF/motor->reduction_ratio-PI;
+    // 3. 累加总角度 (int64_t 不会溢出)
+    motor->message.total_angle += delta;
+
+    // 4. 核心修复：先转为总弧度，再归一化
+    // 公式：总弧度 = (总编码器值 * 2PI/8192) / 减速比
+    double total_rad = (double)motor->message.total_angle * DJI_ECD_ANGLE_COEF / motor->reduction_ratio;
+    
+    // 使用 fmod 对 2PI 取模，结果范围是 (-2PI, 2PI)
+    motor->message.out_position = (float)fmod(total_rad, 2.0 * PI);
+
+    // 5. 将范围调整到 (-PI, PI]
+    if (motor->message.out_position > PI) {
+        motor->message.out_position -= 2.0f * PI;
+    } else if (motor->message.out_position <= -PI) {
+        motor->message.out_position += 2.0f * PI;
+    }
 }
 
 
@@ -125,7 +129,9 @@ DjiMotorInstance_s *Motor_Dji_Register(DjiMotorInitConfig_s *config) {
     motor_instance->control_mode = config->control_mode;
     motor_instance->reduction_ratio = config->reduction_ratio;
     if(config->reduction_ratio == 0){
+        #ifdef USER_LOG
         Log_Error("where`s your fucking reduction ratio config?");
+        #endif
         return NULL;
     }
     // 计算id

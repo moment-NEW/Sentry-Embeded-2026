@@ -925,14 +925,14 @@
               <FilePath>..\Task\app_ins_task.h</FilePath>
             </File>
             <File>
-              <FileName>app_shooter_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Task\app_shooter_task.c</FilePath>
-            </File>
-            <File>
               <FileName>app_shooter_task.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Task\app_shooter_task.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_shooter_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Task\app_shooter_task.c</FilePath>
             </File>
             <File>
               <FileName>app_command_task.c</FileName>
