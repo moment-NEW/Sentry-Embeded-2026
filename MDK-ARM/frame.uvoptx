@@ -120,7 +120,6 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name>7</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -250,52 +249,52 @@
         <Ww>
           <count>5</count>
           <WinNumber>2</WinNumber>
-          <ItemText>temp_pid</ItemText>
+          <ItemText>Trigger</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>2</WinNumber>
-          <ItemText>origin_quater</ItemText>
+          <ItemText>Quater</ItemText>
         </Ww>
         <Ww>
           <count>7</count>
           <WinNumber>2</WinNumber>
-          <ItemText>init_quaternion</ItemText>
+          <ItemText>yaw_mahony</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>2</WinNumber>
-          <ItemText>Trigger</ItemText>
+          <ItemText>pos_target_tr</ItemText>
         </Ww>
         <Ww>
           <count>9</count>
           <WinNumber>2</WinNumber>
-          <ItemText>Quater</ItemText>
+          <ItemText>test_flag</ItemText>
         </Ww>
         <Ww>
           <count>10</count>
           <WinNumber>2</WinNumber>
-          <ItemText>yaw_mahony</ItemText>
+          <ItemText>\\frame\../Task/app_command_task.c\board_instance-&gt;can_instance-&gt;can_handle</ItemText>
         </Ww>
         <Ww>
           <count>11</count>
           <WinNumber>2</WinNumber>
-          <ItemText>tx_buff[128]</ItemText>
+          <ItemText>board_instance</ItemText>
         </Ww>
         <Ww>
           <count>12</count>
           <WinNumber>2</WinNumber>
-          <ItemText>tx_buff</ItemText>
+          <ItemText>Right_Wheel</ItemText>
         </Ww>
         <Ww>
           <count>13</count>
           <WinNumber>2</WinNumber>
-          <ItemText>board_instance</ItemText>
+          <ItemText>target_wheel_speed</ItemText>
         </Ww>
         <Ww>
           <count>14</count>
           <WinNumber>2</WinNumber>
-          <ItemText>StdId</ItemText>
+          <ItemText>\\frame\../Task/app_command_task.c\board_instance</ItemText>
         </Ww>
       </WatchWindow2>
       <Tracepoint>
@@ -1615,24 +1614,24 @@
     <File>
       <GroupNumber>11</GroupNumber>
       <FileNumber>99</FileNumber>
-      <FileType>1</FileType>
-      <tvExp>0</tvExp>
-      <tvExpOptDlg>0</tvExpOptDlg>
-      <bDave2>0</bDave2>
-      <PathWithFileName>..\Task\app_shooter_task.c</PathWithFileName>
-      <FilenameWithoutPath>app_shooter_task.c</FilenameWithoutPath>
-      <RteFlg>0</RteFlg>
-      <bShared>0</bShared>
-    </File>
-    <File>
-      <GroupNumber>11</GroupNumber>
-      <FileNumber>100</FileNumber>
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>..\Task\app_shooter_task.h</PathWithFileName>
       <FilenameWithoutPath>app_shooter_task.h</FilenameWithoutPath>
+      <RteFlg>0</RteFlg>
+      <bShared>0</bShared>
+    </File>
+    <File>
+      <GroupNumber>11</GroupNumber>
+      <FileNumber>100</FileNumber>
+      <FileType>1</FileType>
+      <tvExp>0</tvExp>
+      <tvExpOptDlg>0</tvExpOptDlg>
+      <bDave2>0</bDave2>
+      <PathWithFileName>..\Task\app_shooter_task.c</PathWithFileName>
+      <FilenameWithoutPath>app_shooter_task.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

@@ -1,8 +1,12 @@
 #ifndef APP_COMMAND_TASK_H
 #define APP_COMMAND_TASK_H
+
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
+
+#include "app_shooter_task.h"
 
 #include "dev_dr16.h"
 #include "dev_minipc.h"

@@ -10,12 +10,15 @@ Dr16Instance_s *dr16_instance;
 MiniPC_Instance *minipc_instance;
 board_instance_t *board_instance;
 Publisher *Command_publisher;
+ShooterState_t Shooter_State;
+ShooterState_t Shooter_State_last;
+
 
 //配置
 board_config_t board_config = {
 .board_id=1,
 .can_config={
-  .can_number =2,
+  .can_number =2,//记得改回来
   .topic_name = "Board_Comm"
 },
 .message_type = UP2DOWN_MESSAGE_TYPE
@@ -42,6 +45,24 @@ void StartCommandTask(void const * argument)
   {
 		Publish_Message(Command_publisher, board_instance);
     mode=board_instance->received_control_mode;
+    Shooter_State_last=Shooter_State;
+    switch (mode)
+    {
+    case SHOOT_MODE:
+      if(board_instance->received_shoot_bool==1){
+      Shooter_State=SHOOTER_START;
+      }
+      break;
+    case DISABLE_MODE:
+      Shooter_State=SHOOTER_STOP;
+      break;
+    
+      
+    
+    default:
+      Shooter_State=SHOOTER_STOP;
+      break;
+    }
     osDelay(2);
   }
   /* USER CODE END StartCommandTask */

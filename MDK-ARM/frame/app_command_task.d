@@ -14,8 +14,15 @@ frame/app_command_task.o: ..\Task\app_command_task.c \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
-  ..\Sentry_libs\Module\Dr16\dev_dr16.h \
-  ..\Sentry_libs\Bsp\Uart\bsp_uart.h ..\Core\Inc\usart.h \
+  ..\Task\app_shooter_task.h \
+  ..\Sentry_libs\Algorithm\Fliters\alg_fliter.h \
+  ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
+  ..\Drivers\CMSIS\Include\cmsis_compiler.h \
+  ..\Drivers\CMSIS\Include\cmsis_armclang.h \
+  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
+  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
+  ..\Sentry_libs\Bsp\Can\bsp_can.h \
+  ..\..\Sentry-Embeded-2026\robot_config.h ..\Core\Inc\can.h \
   ..\Core\Inc\main.h ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
   ..\Core\Inc\stm32f4xx_hal_conf.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h \
@@ -47,7 +54,10 @@ frame/app_command_task.o: ..\Task\app_command_task.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd_ex.h \
-  ..\..\Sentry-Embeded-2026\robot_config.h \
+  ..\Sentry_libs\Module\Motor\Dji\dev_motor_dji.h \
+  ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
+  ..\Sentry_libs\Module\Dr16\dev_dr16.h \
+  ..\Sentry_libs\Bsp\Uart\bsp_uart.h ..\Core\Inc\usart.h \
   ..\Sentry_libs\Module\Minipc\dev_minipc.h \
   ..\Sentry_libs\Module\Com_System\Com_System.h \
   ..\Sentry_libs\Module\Com_System\Queue.h \
@@ -58,7 +68,4 @@ frame/app_command_task.o: ..\Task\app_command_task.c \
   ..\USB_DEVICE\Target\usbd_conf.h \
   ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_core.h \
   ..\Middlewares\ST\STM32_USB_Device_Library\Core\Inc\usbd_ctlreq.h \
-  ..\Sentry_libs\Bsp\Log\bsp_log.h ..\Sentry_libs\Bsp\Log\SEGGER_RTT.h \
-  ..\Sentry_libs\Bsp\Log\SEGGER_RTT_Conf.h \
-  ..\Task\dev_board_communicate.h ..\Sentry_libs\Bsp\Can\bsp_can.h \
-  ..\Core\Inc\can.h
+  ..\Task\dev_board_communicate.h

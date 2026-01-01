@@ -40,7 +40,7 @@ typedef struct{
     int16_t rotor_position;             // 电机转子角度编码器值
     int16_t rotor_last_position;        // 电机转子上次角度编码器值
     float rotor_velocity;               // 电机转子速度(rpm)
-    int16_t total_angle;                // 电机转子累计旋转总角度
+    int64_t total_angle;                // 电机转子累计旋转总角度
     int16_t torque_current;             // 扭计电流(-20A~20A映射到-16384~16384)
     float temperature;                  // 电机温度(°C)
 }DjiMotorMessage_s;
