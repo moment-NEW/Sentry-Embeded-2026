@@ -421,12 +421,22 @@ void StartGimbalTask(void const * argument)
 
 
         board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
+				uint8_t last_ControlMode=ControlMode;
         ControlMode=board_instance->received_control_mode;
 		switch (ControlMode) {
 			case PC_MODE:
-				break;
+                target_up_position=board_instance->received_target_up_yaw;
+			    target_position=board_instance->received_target_up_pitch;
+				//同样有fallthough
+			case SHOOT_MODE:
+			case UP_MODE:
+				//这里有个fallthough
+			target_up_position=board_instance->received_target_up_yaw;
+			target_position=board_instance->received_target_up_pitch;
 			case RC_MODE:
-
+			if(last_ControlMode==DISABLE_MODE||pitch->motor_state==DM_DISABLE||Up_yaw->velocity_pid->is_enabled==0){
+				ControlMode=TRANS_MODE;
+			}
 			//Pitch轴
 			//限幅
 		    #ifdef DEBUG
@@ -434,6 +444,7 @@ void StartGimbalTask(void const * argument)
 //      target_position=GenerateReversingRamp(0, 1, 50, 6000, 6000); //50个点，间隔2s，端点停止2s
 //      Motor_Dm_Pos_Vel_Control(pitch,target_position,10);
 			// Motor_Dm_Mit_Control(pitch,0,0,G_feed(pitch->message.out_position));
+            ///////////////////////////////////以下在重力补偿里记得注释/////////////////////////////////////////////////////
 			#endif
 			if(pitch->control_mode==DM_POSITION){
                 #ifndef IMU
@@ -462,7 +473,7 @@ void StartGimbalTask(void const * argument)
             output=pitch->output+G_feed(pitch->message.out_position);
 				
            Motor_Dm_Mit_Control(pitch,0,0,output);
-				
+				////////////////////////////////////////以上是重力补偿要注释的部分/////////////////////////////////////////////
 				
 				#ifdef DEBUG
 				test_output=pitch->message.torque;
@@ -487,6 +498,7 @@ void StartGimbalTask(void const * argument)
                 Pid_Disable(Up_yaw->angle_pid);
                 Pid_Disable(pitch->velocity_pid);
                 Pid_Disable(pitch->angle_pid);
+			
 				Motor_Dm_Cmd(pitch,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(pitch);
 				Motor_Dji_Control(Up_yaw,target_position);//暂时的逻辑
