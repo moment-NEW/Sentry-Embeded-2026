@@ -160,7 +160,7 @@ void MX_FREERTOS_Init(void) {
   ShooterTaskHandle = osThreadCreate(osThread(ShooterTask), NULL);
 
   /* definition and creation of CommandTask */
-  osThreadDef(CommandTask, StartCommandTask, osPriorityAboveNormal, 0, 128);
+  osThreadDef(CommandTask, StartCommandTask, osPriorityHigh, 0, 128);
   CommandTaskHandle = osThreadCreate(osThread(CommandTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
