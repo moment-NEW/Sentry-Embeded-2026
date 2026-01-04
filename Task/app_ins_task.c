@@ -331,7 +331,11 @@ void isttask(void const * argument)
                 // 更新全局四元数结构体
                 Quater.roll = QEKF_INS.Roll;     // 横滚角（度）
                 Quater.pitch = QEKF_INS.Pitch;   // 俯仰角（度）
-                Quater.yaw = QEKF_INS.Yaw;   
+                // 从四元数直接计算弧度制 yaw
+                float yaw_rad = atan2f(2.0f * (QEKF_INS.q[0] * QEKF_INS.q[3] + QEKF_INS.q[1] * QEKF_INS.q[2]), 
+                                    2.0f * (QEKF_INS.q[0] * QEKF_INS.q[0] + QEKF_INS.q[1] * QEKF_INS.q[1]) - 1.0f);
+                Quater.yaw = yaw_rad;  // 赋值给结构体（弧度制）
+                // Quater.yaw = QEKF_INS.Yaw;   
 								//-flag*(0.015*(bmi088_test->temperature-25)+1)*dt							// 偏航角（度）
                 Quater.Acc.A_x = filtered_accel[0];
                 Quater.Acc.A_y = filtered_accel[1];

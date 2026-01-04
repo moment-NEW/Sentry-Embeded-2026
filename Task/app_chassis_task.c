@@ -20,6 +20,7 @@ MiniPC_Instance *MiniPC_SelfAim;
 board_instance_t *board_instance;
 extern QEKF_INS_t QEKF_INS; 
 uint8_t enemy_color =1;//暂时的逻辑
+uint8_t shoot_bool=0;
 //变量声明
 #ifndef DEBUG
 uint8_t controlmode=DISABLE_MODE;
@@ -39,18 +40,18 @@ uint8_t control_mode=RC_MODE;//默认遥控器模式
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
-		.gimbal_yaw_zero =  0.0f,//0.641885281,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
+		.gimbal_yaw_zero = 0.66278553, //0.0f,////0.641885281,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
 		//.gimbal_yaw_half = 0.130077288,//(251481.0f / 262144.0f) * 2.0f * 3.141593f
 		.omni_steering_message={
 		.wheel_radius= 0.0765f,
 	  .chassis_radius= 0.26176f,
 		},
-    
+    .Gyroscope_Speed = 0.01f,  // 设置小陀螺旋转速度 (rad/s)
 		.gimbal_follow_pid_config={
-		  .kp = -3.0f,
+		  .kp = 5.0f,
       .ki = 0.0f,
       .kd = 0.0f,
-			.dead_zone = 0.2f,
+			.dead_zone = 0.15f,
       .i_max = 0.0f,
       .out_max = 2 * 3.141593f,
 		},
@@ -166,15 +167,24 @@ static ChassisInitConfig_s Chassis_config={
         .i_max = 100.0,
         .out_max = 400.0,
     }, 
-    .velocity_pid_config = {
+//    .velocity_pid_config = {
+//        .kp = 1.0f,
+//        .ki = 0.0005f,
+//        .kd = 0.0f,
+//        .kf = 0.0f,
+//        .angle_max = 0,
+//        .i_max = 1000.0,
+//        .out_max = 2000.0,
+//    }
+		 .velocity_pid_config = {
         .kp = 1.0f,
-        .ki = 0.0005f,
+        .ki = 0.0f,
         .kd = 0.0f,
         .kf = 0.0f,
         .angle_max = 0,
         .i_max = 1000.0,
         .out_max = 2000.0,
-    }
+		 }
 };
 
 MiniPC_Config miniPC_config = {
@@ -264,10 +274,13 @@ void StartChassisTask(void const * argument)
 		float dt2 = 0.001f;  // 初始dt
 		dwt2_cnt_last = DWT->CYCCNT;
   /* Infinite loop */
+  //target_position=Down_yaw->message.out_position;
   for(;;)
   {
 		#ifdef DEBUG
 		test_speed=Down_yaw->message.out_velocity;
+    
+    uint16_t last_wheel=CH_Receive_s->dr16_handle.wheel;
 //    speed1=Chassis->chassis_motor[0]->message.out_velocity;
 //    speed2=Chassis->chassis_motor[1]->message.out_velocity;
 //    speed3=Chassis->chassis_motor[2]->message.out_velocity;
@@ -277,20 +290,30 @@ void StartChassisTask(void const * argument)
 //		target3=Chassis->chassis_motor[2]->target_velocity;
 //		target4=Chassis->chassis_motor[3]->target_velocity;
 		test_position=Down_yaw->message.out_position;//Chassis->chassis_motor[0]->message.out_position;
-		target_speed=Down_yaw->target_velocity;//Chassis->chassis_motor[0]->target_velocity;
+		// target_speed=Down_yaw->target_velocity;//Chassis->chassis_motor[0]->target_velocity;
 		dt2 = Dwt_GetDeltaT(&dwt2_cnt_last);
 		#endif
 
 		Get_Message(CH_Subs,CH_Receive_s);
 		
 		control_mode=mode;
-    target_up_position=MiniPC_SelfAim->message.exp_aim_pack.yaw;
-    target_up_pitch=MiniPC_SelfAim->message.exp_aim_pack.pitch;
-    board_send_message(board_instance,Down_yaw->message.out_position ,target_up_position,target_up_pitch, control_mode, 0);//暂时将shootbool改为0
+    // target_up_position=MiniPC_SelfAim->message.exp_aim_pack.yaw;
+    // target_up_pitch=MiniPC_SelfAim->message.exp_aim_pack.pitch;
+
+    if(CH_Receive_s->dr16_handle.wheel>400){
+      shoot_bool=1;
+
+    }else{
+      shoot_bool=0;
+    }
+    board_send_message(board_instance,target_up_position,Down_yaw->message.out_position ,target_up_pitch, control_mode, shoot_bool);
     switch (control_mode)
     {
     case PC_MODE:
         // Chassis->gimbal_yaw_angle
+        target_up_position=MiniPC_SelfAim->message.exp_aim_pack.yaw;
+        target_up_pitch=MiniPC_SelfAim->message.exp_aim_pack.pitch;
+
         Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
         Chassis->gimbal_yaw_angle=Down_yaw->target_position;
         Chassis->Chassis_speed.Vx=MiniPC->message.ch_pack.x_speed;
@@ -298,10 +321,12 @@ void StartChassisTask(void const * argument)
         // Down_yaw->target_position=MiniPC->message.ch_pack.yaw;
         Chassis_Control(Chassis);
         break;
+		
     case RC_MODE:
         /* code */
 				//ch2：x，ch3：y
-        Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
+        //Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
+		Chassis_Change_Mode(Chassis, CHASSIS_FOLLOW_GIMBAL);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
@@ -310,11 +335,15 @@ void StartChassisTask(void const * argument)
 				target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
         target_position=target_position>PI?target_position-2*PI:target_position;
         target_position=target_position<-PI?target_position+2*PI:target_position;
+        target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+        
 				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
 				//Motor_Dm_Control(Down_yaw,Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw*3.1415/360));
 				Motor_Dm_Control(Down_yaw,target_position);
-				test_output=Down_yaw->output;
-				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
+				//test_output=Down_yaw->output;
+        test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,QEKF_INS.Gyro[2]);
+				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
+        Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
 				Motor_Dm_Transmit(Down_yaw);
 				break;
 					
@@ -331,12 +360,58 @@ void StartChassisTask(void const * argument)
     case DISABLE_MODE:
 				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(Down_yaw);
+		
+				Chassis_Change_Mode(Chassis,CHASSIS_NORMAL);
         Chassis_Disable(*Chassis);
 				
         Chassis->Chassis_speed.Vx=0.0f;
         Chassis->Chassis_speed.Vy=0.0f;
+				Chassis->Chassis_speed.Vw=0.0f;
         
         break;
+			case SHOOT_MODE:
+				
+      case UP_MODE:
+      //小云台逻辑
+        target_up_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
+        target_up_pitch-=(CH_Receive_s->dr16_handle.ch1)*3.1415/ 360000.0f;
+				target_up_position=target_up_position>1.7?1.7:target_up_position;
+				target_up_position=target_up_position<-1.7?-1.7:target_up_position;
+				target_up_pitch=target_up_pitch<-0.3?-0.3:target_up_pitch;
+				target_up_pitch=target_up_pitch>0.7?0.7:target_up_pitch;
+				//底盘逻辑
+        Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
+				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
+				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
+				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
+				Chassis_Control(Chassis);
+        //大yaw
+        Motor_Dm_Control(Down_yaw,target_position);
+				test_output=Down_yaw->output;
+				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
+				Motor_Dm_Transmit(Down_yaw);
+        break;
+			case SCROP_MODE:
+				Chassis_Change_Mode(Chassis, CHASSIS_GYROSCOPE);
+				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
+				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
+				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
+				Chassis_Control(Chassis);
+        //大Yaw控制逻辑
+				target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
+        target_position=target_position>PI?target_position-2*PI:target_position;
+        target_position=target_position<-PI?target_position+2*PI:target_position;
+        target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+        
+				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
+				//Motor_Dm_Control(Down_yaw,Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw*3.1415/360));
+				Motor_Dm_Control(Down_yaw,target_position);
+				//test_output=Down_yaw->output;
+        test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,QEKF_INS.Gyro[2]);
+				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
+        Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
+				Motor_Dm_Transmit(Down_yaw);
+				break;
     default:
         break;
     }

@@ -44,7 +44,7 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
       return mode;
       break;
     case 0x32: // s1=3 (中), s2=2 (中)
-    if (last_mode == UP_MODE)
+    if (last_mode == UP_MODE||last_mode == SHOOT_MODE)//之前忘记加SHOOT_MODE了，汗，导致他会自己切出到DISABLE_MODE
     {
       mode = SHOOT_MODE;
     }else{
@@ -56,7 +56,11 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
       break;
     case 0x31:
     case 0x33:
+			if(last_mode!=SCROP_MODE){
 			mode = last_mode==RC_MODE?SCROP_MODE:DISABLE_MODE;
+			}else{
+				mode=SCROP_MODE;
+			}
       return mode;
      
 
@@ -73,13 +77,14 @@ void StartCommandTask(void const * argument)
   /* USER CODE BEGIN StartCommandTask */
 	dr16_instance = Dr16_Register(&huart3); // 注册遥控器实例
 	Command_publisher=Create_Publisher("dr16_topic",sizeof(Dr16Instance_s));
-
+	
   
   /* Infinite loop */
   for(;;)
   {
 		Publish_Message(Command_publisher, dr16_instance);
     mode=Mode_Change(dr16_instance);
+		
     osDelay(2);
   }
   /* USER CODE END StartCommandTask */

@@ -3,9 +3,9 @@
 <title>Static Call Graph - [frame\frame.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image frame\frame.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6220000: Last Updated: Fri Dec 26 15:52:46 2025
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6220000: Last Updated: Sun Jan  4 13:02:37 2026
 <BR><P>
-<H3>Maximum Stack Usage =       1120 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =       1280 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
 StartChassisTask &rArr; Chassis_Register &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 <P>
@@ -2607,7 +2607,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartChassisTask
 </UL>
 
-<P><STRONG><a name="[227]"></a>Mode_Change</STRONG> (Thumb, 338 bytes, Stack size 16 bytes, app_command_task.o(.text.Mode_Change))
+<P><STRONG><a name="[227]"></a>Mode_Change</STRONG> (Thumb, 394 bytes, Stack size 16 bytes, app_command_task.o(.text.Mode_Change))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = Mode_Change
 </UL>
 <BR>[Called By]<UL><LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartCommandTask
@@ -2723,6 +2723,7 @@ Global Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;isttask
 <LI><a href="#[ea]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Chassis_Control
+<LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartChassisTask
 <LI><a href="#[f0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dji_Control
 <LI><a href="#[1f7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dm_Control
 </UL>
@@ -2906,8 +2907,8 @@ Global Symbols
 <LI><a href="#[c3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;BMI088_AccelWrite
 </UL>
 
-<P><STRONG><a name="[91]"></a>StartChassisTask</STRONG> (Thumb, 1496 bytes, Stack size 416 bytes, app_chassis_task.o(.text.StartChassisTask))
-<BR><BR>[Stack]<UL><LI>Max Depth = 1120 + Unknown Stack Size
+<P><STRONG><a name="[91]"></a>StartChassisTask</STRONG> (Thumb, 3192 bytes, Stack size 576 bytes, app_chassis_task.o(.text.StartChassisTask))
+<BR><BR>[Stack]<UL><LI>Max Depth = 1280 + Unknown Stack Size
 <LI>Call Chain = StartChassisTask &rArr; Chassis_Register &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 </UL>
 <BR>[Calls]<UL><LI><a href="#[209]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
@@ -2923,6 +2924,7 @@ Global Symbols
 <LI><a href="#[222]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Minipc_ConfigAimTx
 <LI><a href="#[1f0]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Minipc_Register
 <LI><a href="#[1fc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dm_Transmit
+<LI><a href="#[ec]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Pid_Calculate
 <LI><a href="#[1f7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dm_Control
 <LI><a href="#[1fa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dm_Mit_Control
 <LI><a href="#[221]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dm_Cmd
@@ -2936,6 +2938,7 @@ Global Symbols
 <LI><a href="#[1f5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_ddiv
 <LI><a href="#[225]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dcmple
 <LI><a href="#[226]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dcmpge
+<LI><a href="#[201]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dsub
 <LI><a href="#[f9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dadd
 <LI><a href="#[fa]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_d2f
 </UL>
@@ -3866,7 +3869,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartChassisTask
 </UL>
 
-<P><STRONG><a name="[223]"></a>board_send_message</STRONG> (Thumb, 192 bytes, Stack size 40 bytes, dev_board_communicate.o(.text.board_send_message))
+<P><STRONG><a name="[223]"></a>board_send_message</STRONG> (Thumb, 220 bytes, Stack size 40 bytes, dev_board_communicate.o(.text.board_send_message))
 <BR><BR>[Stack]<UL><LI>Max Depth = 528 + Unknown Stack Size
 <LI>Call Chain = board_send_message &rArr; Can_Transmit &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 </UL>
@@ -3918,8 +3921,8 @@ Global Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;isttask
 </UL>
 
-<P><STRONG><a name="[93]"></a>isttask</STRONG> (Thumb, 936 bytes, Stack size 208 bytes, app_ins_task.o(.text.isttask))
-<BR><BR>[Stack]<UL><LI>Max Depth = 656 + Unknown Stack Size
+<P><STRONG><a name="[93]"></a>isttask</STRONG> (Thumb, 1008 bytes, Stack size 224 bytes, app_ins_task.o(.text.isttask))
+<BR><BR>[Stack]<UL><LI>Max Depth = 672 + Unknown Stack Size
 <LI>Call Chain = isttask &rArr; Bmi088_Register &rArr; BMI088_CalibrateOffset &rArr; BMI088_ReadTemperature &rArr; BMI088_AccelRead &rArr; Spi_TransRecv &rArr; HAL_SPI_TransmitReceive &rArr; SPI_EndRxTxTransaction &rArr; SPI_WaitFlagStateUntilTimeout
 </UL>
 <BR>[Calls]<UL><LI><a href="#[209]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
@@ -3939,6 +3942,7 @@ Global Symbols
 <LI><a href="#[114]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Dwt_GetDeltaT
 <LI><a href="#[207]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Pwm_SetDutyRatio
 <LI><a href="#[204]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Pwm_Register
+<LI><a href="#[fb]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__hardfp_atan2f
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.rodata..L__const.MX_FREERTOS_Init.os_thread_def_Isttask)
 </UL>
@@ -4487,6 +4491,7 @@ Global Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[ef]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Chassis_IK_Calc
 <LI><a href="#[1cc]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;IMU_QuaternionEKF_Update
+<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;isttask
 </UL>
 
 <P><STRONG><a name="[ed]"></a>__hardfp_cosf</STRONG> (Thumb, 280 bytes, Stack size 8 bytes, cosf.o(i.__hardfp_cosf))
@@ -4877,7 +4882,8 @@ Global Symbols
 <P><STRONG><a name="[201]"></a>__aeabi_dsub</STRONG> (Thumb, 0 bytes, Stack size 32 bytes, daddsub_clz.o(x$fpl$dsub))
 <BR><BR>[Stack]<UL><LI>Max Depth = 32<LI>Call Chain = __aeabi_dsub
 </UL>
-<BR>[Called By]<UL><LI><a href="#[ec]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Pid_Calculate
+<BR>[Called By]<UL><LI><a href="#[91]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartChassisTask
+<LI><a href="#[ec]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Pid_Calculate
 <LI><a href="#[f8]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__hardfp_pow
 </UL>
 

@@ -71,6 +71,7 @@ void board_send_message(board_instance_t *instance, float data1, float data2,flo
             up2down_message_t *msg = ACCESS_AS_STRUCT(instance, up2down_message_t);
             msg->findbool = flag1;
             msg->up_yaw_pos = float2half(data1);
+            msg->up_pitch_pos = float2half(data2);
             break;
         }
         default:

@@ -188,7 +188,7 @@
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>CH_Receive_s</ItemText>
+          <ItemText>CH_Receive_s,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
@@ -229,6 +229,16 @@
           <count>13</count>
           <WinNumber>1</WinNumber>
           <ItemText>\\frame\../Task/app_chassis_task.c\Chassis-&gt;chassis_motor[2]-&gt;message</ItemText>
+        </Ww>
+        <Ww>
+          <count>14</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>target_up_position</ItemText>
+        </Ww>
+        <Ww>
+          <count>15</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>board_instance</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -276,6 +286,21 @@
           <count>8</count>
           <WinNumber>2</WinNumber>
           <ItemText>err</ItemText>
+        </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>board_instance</ItemText>
+        </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>MiniPC_SelfAim</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>mode</ItemText>
         </Ww>
       </WatchWindow2>
       <Tracepoint>
