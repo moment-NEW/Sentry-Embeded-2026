@@ -40,7 +40,7 @@ uint8_t control_mode=RC_MODE;//默认遥控器模式
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
-		.gimbal_yaw_zero = 0.66278553, //0.0f,////0.641885281,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
+		.gimbal_yaw_zero = 2.00935459,//-1.08712959,//0.66278553, //0.0f,////0.641885281,//-2.62492895,//(-10663.0f / 262144.0f) * 2.0f * 3.141593f
 		//.gimbal_yaw_half = 0.130077288,//(251481.0f / 262144.0f) * 2.0f * 3.141593f
 		.omni_steering_message={
 		.wheel_radius= 0.0765f,
@@ -315,7 +315,7 @@ void StartChassisTask(void const * argument)
         target_up_pitch=MiniPC_SelfAim->message.exp_aim_pack.pitch;
 
         Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
-        Chassis->gimbal_yaw_angle=Down_yaw->target_position;
+        Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
         Chassis->Chassis_speed.Vx=MiniPC->message.ch_pack.x_speed;
         Chassis->Chassis_speed.Vy=MiniPC->message.ch_pack.y_speed;
         // Down_yaw->target_position=MiniPC->message.ch_pack.yaw;
@@ -339,7 +339,7 @@ void StartChassisTask(void const * argument)
         
 				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
 				//Motor_Dm_Control(Down_yaw,Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw*3.1415/360));
-				Motor_Dm_Control(Down_yaw,target_position);
+				//Motor_Dm_Control(Down_yaw,target_position);
 				//test_output=Down_yaw->output;
         test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,QEKF_INS.Gyro[2]);
 				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
@@ -405,7 +405,7 @@ void StartChassisTask(void const * argument)
         
 				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
 				//Motor_Dm_Control(Down_yaw,Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw*3.1415/360));
-				Motor_Dm_Control(Down_yaw,target_position);
+				//Motor_Dm_Control(Down_yaw,target_position);
 				//test_output=Down_yaw->output;
         test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,QEKF_INS.Gyro[2]);
 				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
