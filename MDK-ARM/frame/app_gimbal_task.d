@@ -51,8 +51,6 @@ frame/app_gimbal_task.o: ..\Task\app_gimbal_task.c \
   ..\Sentry_libs\Bsp\GPIO\bsp_gpio.h ..\Core\Inc\gpio.h \
   ..\Middlewares\ST\ARM\DSP\Inc\arm_math.h \
   ..\Drivers\CMSIS\Include\cmsis_compiler.h \
-  ..\Sentry_libs\Algorithm\Kalman\alg_quaternionEKF.h \
-  ..\Sentry_libs\Algorithm\Kalman\kalman_filter.h \
   ..\Sentry_libs\Algorithm\Mahony\MahonyAHRS.h \
   ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
   ..\Sentry_libs\Module\BMI088\dev_bmi088.h \

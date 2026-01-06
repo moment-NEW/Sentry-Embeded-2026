@@ -400,7 +400,7 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
         origin_quater[2]=0;
         origin_quater[3]=0;//假设初始姿态就和坐标系对齐
      //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
+    //IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
     
     }
     
@@ -580,80 +580,80 @@ void quaternion_normalize(float* quaternion)
     arm_scale_f32(quaternion, 1.0f/norm, quaternion, 4);
 }
 
-/**
-* @brief 对陀螺仪进行积分来获取四元数角度更新（一阶龙格库塔法）
-*
-* @param gyro 陀螺仪输出数值[3x1]
-* @param origin_quater 初始姿态四元数[4x1]
-* @param dt 运行间隔
-* @param quaternion 输出四元数 [w, x, y, z]
-* @return 0: 成功, -1: 失败, 1:妙妙成功
-*/
-uint8_t caculate_angle(const float* gyro, const float* origin_quater, float* quaternion, float dt)
-{
-    // 检查输入参数
-    if (gyro == NULL || origin_quater == NULL || quaternion == NULL || dt <= 0) {
-        return -1;
-    }
-    
-    // 构造角速度四元数 [0, wx, wy, wz]
-    float omega_q[4] = {0.0f, gyro[0], gyro[1], gyro[2]};
-    float temp_q[4];//导数
-        float delta_q[4];
-    // 计算四元数导数：dq/dt = 0.5 * w*q （右乘，作用于物体坐标系）
-  
-    quaternion_multiply(origin_quater, omega_q, temp_q);//qw
-    
-    // 除以二
-    arm_scale_f32(temp_q, 0.5f, temp_q, 4);
-    
-    // 一阶积分：q(t+dt) = q(t) + dq/dt * dt
-    
-    arm_scale_f32(temp_q, dt, delta_q, 4);
-    arm_add_f32(origin_quater, delta_q, quaternion, 4);
-    
-    // 归一化保持单位四元数性质
-    quaternion_normalize(quaternion);
-        
-    
-    return 1;
-}
+///**
+//* @brief 对陀螺仪进行积分来获取四元数角度更新（一阶龙格库塔法）
+//*
+//* @param gyro 陀螺仪输出数值[3x1]
+//* @param origin_quater 初始姿态四元数[4x1]
+//* @param dt 运行间隔
+//* @param quaternion 输出四元数 [w, x, y, z]
+//* @return 0: 成功, -1: 失败, 1:妙妙成功
+//*/
+//uint8_t caculate_angle(const float* gyro, const float* origin_quater, float* quaternion, float dt)
+//{
+//    // 检查输入参数
+//    if (gyro == NULL || origin_quater == NULL || quaternion == NULL || dt <= 0) {
+//        return -1;
+//    }
+//    
+//    // 构造角速度四元数 [0, wx, wy, wz]
+//    float omega_q[4] = {0.0f, gyro[0], gyro[1], gyro[2]};
+//    float temp_q[4];//导数
+//        float delta_q[4];
+//    // 计算四元数导数：dq/dt = 0.5 * w*q （右乘，作用于物体坐标系）
+//  
+//    quaternion_multiply(origin_quater, omega_q, temp_q);//qw
+//    
+//    // 除以二
+//    arm_scale_f32(temp_q, 0.5f, temp_q, 4);
+//    
+//    // 一阶积分：q(t+dt) = q(t) + dq/dt * dt
+//    
+//    arm_scale_f32(temp_q, dt, delta_q, 4);
+//    arm_add_f32(origin_quater, delta_q, quaternion, 4);
+//    
+//    // 归一化保持单位四元数性质
+//    quaternion_normalize(quaternion);
+//        
+//    
+//    return 1;
+//}
 
-/**
- * @brief 更新四元数函数
- * @details 用于在INS任务中循环更新四元数，解算姿态
- * @param origin_quater 四元数指针，用于输出更新后的四元数
- */
-void quaternion_update(float* origin_quater){
-    // 核心函数，kalman更新四元数
-    // 此函数现在集成到主循环中的EKF更新部分
-    // 直接从QEKF_INS结构体中获取EKF计算的四元数
-    if (QEKF_INS.Initialized && origin_quater != NULL) {
-        origin_quater[0] = QEKF_INS.q[0]; // w
-        origin_quater[1] = QEKF_INS.q[1]; // x
-        origin_quater[2] = QEKF_INS.q[2]; // y
-        origin_quater[3] = QEKF_INS.q[3]; // z
-    }
-}
+///**
+// * @brief 更新四元数函数
+// * @details 用于在INS任务中循环更新四元数，解算姿态
+// * @param origin_quater 四元数指针，用于输出更新后的四元数
+// */
+//void quaternion_update(float* origin_quater){
+//    // 核心函数，kalman更新四元数
+//    // 此函数现在集成到主循环中的EKF更新部分
+//    // 直接从QEKF_INS结构体中获取EKF计算的四元数
+//    if (QEKF_INS.Initialized && origin_quater != NULL) {
+//        origin_quater[0] = QEKF_INS.q[0]; // w
+//        origin_quater[1] = QEKF_INS.q[1]; // x
+//        origin_quater[2] = QEKF_INS.q[2]; // y
+//        origin_quater[3] = QEKF_INS.q[3]; // z
+//    }
+//}
 
-/**
- * @brief 获取EKF计算的欧拉角
- * @param roll 横滚角输出（弧度）
- * @param pitch 俯仰角输出（弧度）
- * @param yaw 偏航角输出（弧度）
- */
-void get_ekf_euler_angles(float* roll, float* pitch, float* yaw) {
-    if (QEKF_INS.Initialized && roll != NULL && pitch != NULL && yaw != NULL) {
-        *roll = QEKF_INS.Roll * M_PI / 180.0f;    // 转换为弧度
-        *pitch = QEKF_INS.Pitch * M_PI / 180.0f;  // 转换为弧度
-        *yaw = QEKF_INS.Yaw * M_PI / 180.0f;      // 转换为弧度
-    }
-}
+///**
+// * @brief 获取EKF计算的欧拉角
+// * @param roll 横滚角输出（弧度）
+// * @param pitch 俯仰角输出（弧度）
+// * @param yaw 偏航角输出（弧度）
+// */
+//void get_ekf_euler_angles(float* roll, float* pitch, float* yaw) {
+//    if (QEKF_INS.Initialized && roll != NULL && pitch != NULL && yaw != NULL) {
+//        *roll = QEKF_INS.Roll * M_PI / 180.0f;    // 转换为弧度
+//        *pitch = QEKF_INS.Pitch * M_PI / 180.0f;  // 转换为弧度
+//        *yaw = QEKF_INS.Yaw * M_PI / 180.0f;      // 转换为弧度
+//    }
+//}
 
-/**
- * @brief 获取EKF收敛状态
- * @return 1: EKF已收敛, 0: EKF未收敛
- */
-uint8_t get_ekf_status(void) {
-    return QEKF_INS.ConvergeFlag;
-}
+///**
+// * @brief 获取EKF收敛状态
+// * @return 1: EKF已收敛, 0: EKF未收敛
+// */
+//uint8_t get_ekf_status(void) {
+//    return QEKF_INS.ConvergeFlag;
+//}
