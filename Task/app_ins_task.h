@@ -22,7 +22,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
-#include "alg_quaternionEKF.h"  //已经接入，也可以切换成mahony
+//#include "alg_quaternionEKF.h"  //已经接入，也可以切换成mahony
 #include "MahonyAHRS.h"
 #include "alg_pid.h"  //温度控制相关
 #include "math.h"
@@ -99,7 +99,7 @@ extern PidInstance_s *ins_pid;                // INS PID控制器
 extern uint8_t test_data[5];                  // 磁力计测试数据
 
 // EKF相关外部访问接口
-extern QEKF_INS_t QEKF_INS;                   // EKF状态结构体（来自alg_quaternionEKF.c）
+//extern QEKF_INS_t QEKF_INS;                   // EKF状态结构体（来自alg_quaternionEKF.c）
 
 
 #endif

@@ -23,7 +23,7 @@ extern board_instance_t *board_instance;
 #define DEBUG
 #ifdef DEBUG
 float test_speed_tr=0.0;
-float target_speed_tr=0.0;
+float target_speed_tr=10.0;
 float test_position_tr=0.0;
 float target_wheel_speed=0.0;
 float test_output_tr=0.0;
@@ -122,8 +122,8 @@ static  DjiMotorInitConfig_s Right_Config = {
 static  DjiMotorInitConfig_s Trigger_Config = {
     .id = 3,                      // 电机ID(1~4)
     .type = M2006,               // 电机类型
-    // .control_mode = DJI_VELOCITY,  // 电机控制模式
-    .control_mode = DJI_POSITION,
+     .control_mode = DJI_VELOCITY,  // 电机控制模式
+    //.control_mode = DJI_POSITION,
 		.topic_name = "Trigger",
     .can_config = {
         .can_number = 2,
@@ -134,22 +134,22 @@ static  DjiMotorInitConfig_s Trigger_Config = {
     .reduction_ratio = (36.0/19.0)*47.0,              // 减速比
 
     .angle_pid_config = {
-        .kp = 140.0,                        // 位置环比例系数
-        .ki = 0.0,                        // 位置环积分系数
-        .kd = 0.0,                        // 位置环微分系数
-        .kf = 0.0,                        // 前馈系数
+        .kp = 35.0f,                        // 位置环比例系数
+        .ki = 0.0f,                        // 位置环积分系数
+        .kd = 0.0f,                        // 位置环微分系数
+        .kf = 0.0f,                        // 前馈系数
         .angle_max =2*PI,                 // 角度最大值(限幅用，为0则不限幅)
-        .i_max = 100.0,                   // 积分限幅
-        .out_max = 400.0,                 // 输出限幅(速度环输入)
+        .i_max = 100.0f,                   // 积分限幅
+        .out_max = 4000.0f,                 // 输出限幅(速度环输入)
     },
     .velocity_pid_config = {
-        .kp = 1500.0,                       // 速度环比例系数
-        .ki = 200.0,                        // 速度环积分系数
-        .kd = 0.0,                        // 速度环微分系数
-        .kf = 0.0,                        // 前馈系数
+        .kp = 45.0f,                       // 速度环比例系数
+        .ki = 0.05f,                        // 速度环积分系数
+        .kd = 0.0f,                        // 速度环微分系数
+        .kf = 0.0f,                        // 前馈系数
         .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
-        .i_max = 1000.0,                  // 积分限幅
-        .out_max = 16000.0,                // 输出限幅(电流输出)
+        .i_max = 1000.0f,                  // 积分限幅
+        .out_max = 16000.0f,                // 输出限幅(电流输出)
     }
 };
 
@@ -185,11 +185,14 @@ void StartShooterTask(void const * argument)
   //拨弹盘初始化
 	pos_target_tr=Trigger->message.out_position;//防止出问题
   // 初始化时按固定方向旋转到原点
-while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.01f) {
+while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.03f) {
     pos_target_tr -= 0.001f;
+    pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
+    pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
     Motor_Dji_Control(Trigger, pos_target_tr);
     Motor_Dji_Transmit(Trigger);
-		if(Trigger->message.torque_current>MAX_TORQUE)break;
+		if(Trigger->message.torque_current>MAX_TORQUE||Trigger->message.torque_current<-MAX_TORQUE)break;
+    //或许可以来个超时检测，但是等看门狗什么的都完善了再一并加入吧
     osDelay(1);
 }
 
@@ -329,22 +332,23 @@ while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.01f) {
 		//	Pid_Enable(Left_Wheel->velocity_pid);
       //  Pid_Enable(Right_Wheel->velocity_pid);
 				if(test_flag==1){
-					pos_target_tr+=0.0007;
-					pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
-					pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
+//					pos_target_tr+=0.001;
+//					pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
+//					pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
+					pos_target_tr=target_speed_tr;	
 				}
 				target_wheel_speed=-2000.0f;
-        Motor_Dji_Control(Trigger,pos_target_tr);
-				
+      //  Motor_Dji_Control(Trigger,pos_target_tr);
+			//	Motor_Dji_Transmit(Trigger);
         break;
 			default:
 				break;
     }
     
-		test_speed_tr=Right_Wheel->message.out_velocity;
-		target_speed_tr=Right_Wheel->angle_pid->output;
-    test_position_tr=Right_Wheel->message.out_position;
-		test_output_tr=Right_Wheel->message.torque_current;
+		test_speed_tr=Trigger->message.out_velocity;
+		//target_speed_tr=Trigger->angle_pid->output;
+    test_position_tr=Trigger->message.out_position;
+		test_output_tr=Trigger->message.torque_current;
 		test_speed_left=Left_Wheel->message.out_velocity;
 		float test_left;
 
@@ -352,7 +356,7 @@ while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.01f) {
     
     
 		
-		Motor_Dji_Transmit(Trigger);
+		//Motor_Dji_Transmit(Trigger);
 //		if(board_instance->received_shoot_bool==1){
 //      target_wheel_speed=SHOOTER_WHEEL_SPEED;}else{
 //        target_wheel_speed=0.0f;
