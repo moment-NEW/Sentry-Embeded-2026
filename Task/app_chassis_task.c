@@ -13,6 +13,7 @@
 //实例声明
 ChassisInstance_s *Chassis;
 DmMotorInstance_s *Down_yaw;
+DjiMotorInstance_s *Trigger;
 Subscriber *CH_Subs;
 Dr16Instance_s* CH_Receive_s;
 MiniPC_Instance *MiniPC;
@@ -30,13 +31,16 @@ float target_up_pitch=0.0;
 #else
 extern uint8_t mode;
 float target_position=0.0f,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
+float target_tr=40.0;
+float test_vel_tr=0.0,test_output_tr=0.0;
+uint16_t lasttime=0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
 //float target1=0.0,target2=0.0,target3=0.0,target4=0.0;
 float target_up_position=0.3f;//暂时的逻辑，一定要记得改回来！！！！！
 float target_up_pitch=0.0f;
 #endif
 uint8_t control_mode=RC_MODE;//默认遥控器模式
-
+uint16_t max_torque=2500;
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
@@ -186,6 +190,43 @@ static ChassisInitConfig_s Chassis_config={
         .out_max = 2000.0,
 		 }
 };
+//拨弹盘配置
+static  DjiMotorInitConfig_s Trigger_Config = {
+    .id = 3,                      // 电机ID(1~4)
+    .type = M2006,               // 电机类型
+     .control_mode = DJI_VELOCITY,  // 电机控制模式
+    //.control_mode = DJI_POSITION,
+		.topic_name = "Trigger",
+    .can_config = {
+        .can_number = 2,
+				.topic_name = "Trigger",              // can句柄
+        .tx_id = 0x200,                     // 发送id 
+        .rx_id = 0x203,                     // 接收id
+			  .can_module_callback=NULL,
+    },
+    .reduction_ratio = (36.0/19.0)*47.0,              // 减速比
+
+    .angle_pid_config = {
+        .kp = 35.0f,                        // 位置环比例系数
+        .ki = 0.0f,                        // 位置环积分系数
+        .kd = 0.0f,                        // 位置环微分系数
+        .kf = 0.0f,                        // 前馈系数
+        .angle_max =2*PI,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 100.0f,                   // 积分限幅
+        .out_max = 4000.0f,                 // 输出限幅(速度环输入)
+    },
+    .velocity_pid_config = {
+        .kp = 160.0f,                       // 速度环比例系数
+        .ki = 0.0f,                        // 速度环积分系数
+        .kd = 0.0f,                        // 速度环微分系数
+        .kf = 0.0f,                        // 前馈系数
+        .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 1000.0f,                  // 积分限幅
+        .out_max = 16000.0f,                // 输出限幅(电流输出)
+    }
+};
+
+
 
 MiniPC_Config miniPC_config = {
     .callback = NULL,
@@ -248,6 +289,11 @@ void StartChassisTask(void const * argument)
 		if (Down_yaw == NULL){
 				Log_Error("Chassis Register Failed!");
 		}
+
+	Trigger = Motor_Dji_Register(&Trigger_Config);
+		if (Trigger == NULL){
+				Log_Error("Trigger Register Failed!");
+		}
   board_instance= board_init(&board_config);
     if (board_instance == NULL) {
         Log_Error("Board Register Failed!");
@@ -292,6 +338,8 @@ void StartChassisTask(void const * argument)
 		test_position=Down_yaw->message.out_position;//Chassis->chassis_motor[0]->message.out_position;
 		// target_speed=Down_yaw->target_velocity;//Chassis->chassis_motor[0]->target_velocity;
 		dt2 = Dwt_GetDeltaT(&dwt2_cnt_last);
+			test_vel_tr=Trigger->message.out_velocity;
+			test_output_tr=Trigger->message.torque_current;
 		#endif
 
 		Get_Message(CH_Subs,CH_Receive_s);
@@ -370,7 +418,37 @@ void StartChassisTask(void const * argument)
         
         break;
 			case SHOOT_MODE:
+				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
+				Motor_Dm_Transmit(Down_yaw);
+		
+				Chassis_Change_Mode(Chassis,CHASSIS_NORMAL);
+        Chassis_Disable(*Chassis);
 				
+        Chassis->Chassis_speed.Vx=0.0f;
+        Chassis->Chassis_speed.Vy=0.0f;
+				Chassis->Chassis_speed.Vw=0.0f;
+				if(shoot_bool){
+					if(lasttime > 100) {
+						// 堵转反转
+						Trigger->target_velocity = -target_tr;
+						lasttime++;
+						if(lasttime > 200) lasttime = 0;
+					} else {
+						// 正常射击
+						Trigger->target_velocity = target_tr;
+						if(Trigger->message.torque_current > max_torque || Trigger->message.torque_current < -max_torque) {
+							lasttime++;
+						} else {
+							lasttime = 0;
+						}
+					}
+        }else{
+          Trigger->target_velocity=0.0f;
+					lasttime = 0;
+        }
+        Motor_Dji_Control(Trigger,Trigger->target_velocity);
+        Motor_Dji_Transmit(Trigger);
+        break;
       case UP_MODE:
       //小云台逻辑
         target_up_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
