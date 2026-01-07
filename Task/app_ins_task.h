@@ -22,6 +22,13 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
+
+
+#include "bsp_dwt.h"  // 添加DWT头文件
+#include "bsp_log.h"
+
+
+#include "app_gimbal_task.h"
 //#include "alg_quaternionEKF.h"  //已经接入，也可以切换成mahony
 #include "MahonyAHRS.h"
 #include "alg_pid.h"  //温度控制相关
