@@ -30,8 +30,9 @@ float target_up_position=0.0;
 float target_up_pitch=0.0;
 #else
 extern uint8_t mode;
+extern uint8_t combined_state_global;
 float target_position=0.0f,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
-float target_tr=40.0;
+float target_tr=60.0;
 float test_vel_tr=0.0,test_output_tr=0.0;
 uint16_t lasttime=0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
@@ -40,7 +41,7 @@ float target_up_position=0.3f;//暂时的逻辑，一定要记得改回来！！
 float target_up_pitch=0.0f;
 #endif
 uint8_t control_mode=RC_MODE;//默认遥控器模式
-uint16_t max_torque=2500;
+uint16_t max_torque=3000;
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
@@ -217,7 +218,7 @@ static  DjiMotorInitConfig_s Trigger_Config = {
     },
     .velocity_pid_config = {
         .kp = 160.0f,                       // 速度环比例系数
-        .ki = 0.0f,                        // 速度环积分系数
+        .ki = 0.005f,                        // 速度环积分系数
         .kd = 0.0f,                        // 速度环微分系数
         .kf = 0.0f,                        // 前馈系数
         .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
@@ -354,7 +355,7 @@ void StartChassisTask(void const * argument)
     }else{
       shoot_bool=0;
     }
-    board_send_message(board_instance,target_up_position,Down_yaw->message.out_position ,target_up_pitch, control_mode, shoot_bool);
+    board_send_message(board_instance,target_up_position,Down_yaw->message.out_position ,target_up_pitch, combined_state_global, shoot_bool);
     switch (control_mode)
     {
     case PC_MODE:
@@ -427,26 +428,33 @@ void StartChassisTask(void const * argument)
         Chassis->Chassis_speed.Vx=0.0f;
         Chassis->Chassis_speed.Vy=0.0f;
 				Chassis->Chassis_speed.Vw=0.0f;
-				if(shoot_bool){
-					if(lasttime > 100) {
-						// 堵转反转
-						Trigger->target_velocity = -target_tr;
-						lasttime++;
-						if(lasttime > 200) lasttime = 0;
-					} else {
-						// 正常射击
-						Trigger->target_velocity = target_tr;
-						if(Trigger->message.torque_current > max_torque || Trigger->message.torque_current < -max_torque) {
-							lasttime++;
-						} else {
-							lasttime = 0;
-						}
-					}
-        }else{
+                if(shoot_bool){
+                    if(lasttime > 100) {
+                        // 堵转反转
+                        Trigger->target_velocity = -target_tr;
+                        lasttime++;
+                        if(lasttime > 200) lasttime = 0;
+                    } else {
+                        // 正常射击
+                        Trigger->target_velocity = target_tr;
+                        if(Trigger->message.torque_current > max_torque || Trigger->message.torque_current < -max_torque) {
+                            lasttime++;
+                        } else {
+                            lasttime = 0;
+                        }
+                    }
+                }else{
           Trigger->target_velocity=0.0f;
-					lasttime = 0;
         }
         Motor_Dji_Control(Trigger,Trigger->target_velocity);
+                if(Trigger->message.torque_current>max_torque||Trigger->message.torque_current<-max_torque){
+                    lasttime++;
+                    if(lasttime>100){
+                    Trigger->output=0.0;
+                    }
+                }else{
+                    lasttime=0;
+                }
         Motor_Dji_Transmit(Trigger);
         break;
       case UP_MODE:
@@ -496,4 +504,4 @@ void StartChassisTask(void const * argument)
     osDelay(1);
   }
   /* USER CODE END StartChassisTask */
-}                                                                                         
+}

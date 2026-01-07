@@ -12,6 +12,7 @@ Publisher *Command_publisher;
 
 //变量
 uint8_t mode=0,last_mode=0;
+uint8_t combined_state_global=0;
 //配置
 /**
  * @brief 根据遥控器的拨杆位置确定控制模式
@@ -25,6 +26,7 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
   // 这样s1占据高4位，s2占据低4位，形成一个唯一的8位状态值。
   // 例如: s1=1, s2=2  ->  (1 << 4) | 2  ->  0x10 | 0x02  ->  0x12
   uint8_t combined_state = (dr16->dr16_handle.s1 << 4) | dr16->dr16_handle.s2;
+  combined_state_global=combined_state;
   switch (combined_state)
   {
     case 0x11: // s1=1 (上), s2=1 (上)

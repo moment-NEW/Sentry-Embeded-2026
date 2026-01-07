@@ -247,6 +247,7 @@ void isttask(void const * argument)
     float32_t origin_quaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f};  // 初始四元数
     uint8_t ins_initialized = 0;           // INS初始化标志
     
+    
     // 初始化四元数（简化版，实际应用中需要更复杂的初始化）
     Quater_Init(origin_quaternion, 1); // 使用默认初始化
     // IMU_QuaternionEKF_Init(origin_quaternion, 10, 0.001, 10000000, 1, 0);//已经包含在以上初始化中
