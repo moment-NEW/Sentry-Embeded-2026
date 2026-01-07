@@ -7,6 +7,9 @@
 #include "app_gimbal_task.h"
 #define DEBUG
 #define IMU
+
+
+#define YAW_ORIGIN 3.0f
 //实例声明
 //此处做了修改，现在完全不关心下云台电机
 DmMotorInstance_s *pitch;
@@ -20,7 +23,11 @@ uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
+extern uint8_t mode;
 uint8_t ControlMode= RC_MODE;
+uint8_t gimbal_ready_flag;
+
+
 float target_position=0.3,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_speed=0.0;//yaw目标速度（用于IMU下）
 float target_up_position=0.0;
@@ -401,13 +408,28 @@ void StartGimbalTask(void const * argument)
 				
         // Motor_Dm_Mit_Control(pitch,0,0,output);
         // Motor_Dm_Transmit(pitch);
+			Up_yaw->control_mode=DJI_POSITION;
+        Up_yaw->velocity_pid->kp=75.0f;
+			Up_yaw->velocity_pid->ki=0.0f;
+        Motor_Dji_Control(Up_yaw,YAW_ORIGIN);
+        Motor_Dji_Transmit(Up_yaw);
+        if(fabsf(Up_yaw->message.out_position-YAW_ORIGIN)<0.05f){
+            gimbal_ready_flag=1;
+            break;
+        }
+        
         osDelay(1);
     }
+    Up_yaw->velocity_pid->kp=2300.0f;
+		Up_yaw->control_mode=DJI_VELOCITY;
+    gimbal_ready_flag=1;
+    Log("Gimbal ready\r\n");
   for(;;)
   {
 		#ifdef DEBUG
 		test_speed=Up_yaw->message.out_velocity;
 		test_position=Up_yaw->message.out_position;
+        static uint8_t send_flag=0;
 		//target_speed=pitch->angle_pid->output;
 		 dt3 = Dwt_GetDeltaT(&dwt_cnt_last3);
        
@@ -419,10 +441,15 @@ void StartGimbalTask(void const * argument)
 		#endif
         //ControlMode=board_instance->received_control_mode;
 
-
-        board_send_message(board_instance, Up_yaw->message.out_position, 0, 0, find_bool);
+        //把发送频率降低一点
+        if(send_flag==0){
+            send_flag=1;
+        board_send_message(board_instance,Quater.yaw, Quater.pitch, find_bool, find_bool);
+        }else{
+            send_flag=0;
+        }   
 				uint8_t last_ControlMode=ControlMode;
-        ControlMode=board_instance->received_control_mode;
+        ControlMode=mode;
 		switch (ControlMode) {
 			case PC_MODE:
                 target_up_position=board_instance->received_target_up_yaw;

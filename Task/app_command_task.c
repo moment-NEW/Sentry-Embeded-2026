@@ -3,6 +3,7 @@
  * @author CGH
  * @brief 指令处理任务
  * @version V1.0.0
+ * @note 打算改成直接使用遥控器值，以免处理的延迟导致模式切换不对
  */
 #include "app_command_task.h"
 
@@ -30,8 +31,63 @@ board_config_t board_config = {
 
 //变量
 uint8_t mode=0,last_mode=0;
+uint8_t combined_state_global=0;//从下位机获取的combined值
 
+/**
+ * @brief 根据遥控器的拨杆位置确定控制模式
+ * @param dr16 指向遥控器实例的指针
+ * @return uint8_t 返回当前的控制模式
+ */
+uint8_t Mode_Change(uint8_t combined_state_global){
+  last_mode=mode;
 
+   //从下位机直接获取combined后的值
+  switch (combined_state_global)
+  {
+    case 0x11: // s1=1 (上), s2=1 (上)
+      mode = last_mode==DISABLE_MODE?TRANS_MODE:PC_MODE;
+			return mode;
+      break;
+    
+    case 0x13: // s1=1 (上), s2=3 (中)
+      
+		mode = last_mode==DISABLE_MODE?TRANS_MODE:RC_MODE;
+			
+		return mode;
+      break;
+
+    case 0x12: // s1=1 (上), s2=2 (下)
+      mode= last_mode==DISABLE_MODE?TRANS_MODE:UP_MODE;
+      return mode;
+      break;
+    case 0x32: // s1=3 (中), s2=2 (中)
+    if (last_mode == UP_MODE||last_mode == SHOOT_MODE)//之前忘记加SHOOT_MODE了，汗，导致他会自己切出到DISABLE_MODE
+    {
+      mode = SHOOT_MODE;
+    }else{
+    
+      mode = DISABLE_MODE;
+    }
+		
+      return mode;
+      break;
+    case 0x31:
+    case 0x33:
+			if(last_mode!=SCROP_MODE){
+			mode = last_mode==RC_MODE?SCROP_MODE:DISABLE_MODE;
+			}else{
+				mode=SCROP_MODE;
+			}
+      return mode;
+     
+
+    default: // 其他所有情况 (包括 s1=2, s2在任意位置)
+      mode = DISABLE_MODE;
+      break;
+  }
+  return mode;
+  
+}
 
 void StartCommandTask(void const * argument)
 {
@@ -44,7 +100,8 @@ void StartCommandTask(void const * argument)
   for(;;)
   {
 		Publish_Message(Command_publisher, board_instance);
-    mode=board_instance->received_control_mode;
+    combined_state_global=board_instance->received_control_mode;
+    mode=Mode_Change(combined_state_global);
     Shooter_State_last=Shooter_State;
     switch (mode)
     {

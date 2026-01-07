@@ -24,7 +24,7 @@
 char tx_buff[128];  // 足够大的缓冲区
 uint8_t ready_flag=0;//姿态解算完成标志
 PidInstance_s *ins_pid;
-
+extern uint8_t gimbal_ready_flag;//云台初始化完成标志
 uint8_t test_data[5]={0,0,0,0,0};
 quaternions_struct_t Quater;//四元数
 Bmi088Instance_s *bmi088_test;
@@ -196,6 +196,13 @@ void isttask(void const * argument)
     uint8_t ins_initialized = 0;           // INS初始化标志
     
     // 初始化四元数（简化版，实际应用中需要更复杂的初始化）
+    while (gimbal_ready_flag!=1)
+    {
+        osDelay(1);
+        //有时间加个超时逻辑
+
+    }
+    
     Quater_Init(origin_quaternion, 1); // 使用默认初始化
     // IMU_QuaternionEKF_Init(origin_quaternion, 10, 0.001, 10000000, 1, 0);//已经包含在以上初始化中
     ins_initialized = 1;
@@ -209,7 +216,7 @@ void isttask(void const * argument)
     uint8_t flag=1;
     // 初始化DWT计数器
     dwt_cnt_last = DWT->CYCCNT;
-    
+    Log("INS task started\r\n");
     // uint32_t last_time = HAL_GetTick();     // 用于计算dt
   /* Infinite loop */
   for(;;)
