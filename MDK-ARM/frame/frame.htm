@@ -3,9 +3,9 @@
 <title>Static Call Graph - [frame\frame.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image frame\frame.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6220000: Last Updated: Wed Jan  7 12:06:19 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6220000: Last Updated: Fri Jan  9 14:21:26 2026
 <BR><P>
-<H3>Maximum Stack Usage =        800 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =        776 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
 StartShooterTask &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 <P>
@@ -2711,8 +2711,8 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.rodata..L__const.MX_FREERTOS_Init.os_thread_def_defaultTask)
 </UL>
-<P><STRONG><a name="[8c]"></a>StartGimbalTask</STRONG> (Thumb, 1544 bytes, Stack size 104 bytes, app_gimbal_task.o(.text.StartGimbalTask))
-<BR><BR>[Stack]<UL><LI>Max Depth = 760 + Unknown Stack Size
+<P><STRONG><a name="[8c]"></a>StartGimbalTask</STRONG> (Thumb, 2104 bytes, Stack size 112 bytes, app_gimbal_task.o(.text.StartGimbalTask))
+<BR><BR>[Stack]<UL><LI>Max Depth = 768 + Unknown Stack Size
 <LI>Call Chain = StartGimbalTask &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 </UL>
 <BR>[Calls]<UL><LI><a href="#[1e4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
@@ -2733,12 +2733,13 @@ Global Symbols
 <LI><a href="#[f4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_f2d
 <LI><a href="#[1ce]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dcmple
 <LI><a href="#[200]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dcmpge
+<LI><a href="#[f6]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_dadd
 <LI><a href="#[f7]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_d2f
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.rodata..L__const.MX_FREERTOS_Init.os_thread_def_Gimbal_Task)
 </UL>
-<P><STRONG><a name="[8e]"></a>StartShooterTask</STRONG> (Thumb, 2704 bytes, Stack size 144 bytes, app_shooter_task.o(.text.StartShooterTask))
-<BR><BR>[Stack]<UL><LI>Max Depth = 800 + Unknown Stack Size
+<P><STRONG><a name="[8e]"></a>StartShooterTask</STRONG> (Thumb, 2320 bytes, Stack size 120 bytes, app_shooter_task.o(.text.StartShooterTask))
+<BR><BR>[Stack]<UL><LI>Max Depth = 776 + Unknown Stack Size
 <LI>Call Chain = StartShooterTask &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 </UL>
 <BR>[Calls]<UL><LI><a href="#[1e4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
@@ -4421,6 +4422,7 @@ Global Symbols
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = __aeabi_dadd
 </UL>
 <BR>[Called By]<UL><LI><a href="#[8e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartShooterTask
+<LI><a href="#[8c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StartGimbalTask
 <LI><a href="#[f3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;G_feed
 <LI><a href="#[83]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Motor_Dji_Decode
 <LI><a href="#[28f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__kernel_poly

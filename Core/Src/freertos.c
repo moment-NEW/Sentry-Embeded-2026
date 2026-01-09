@@ -152,11 +152,11 @@ void MX_FREERTOS_Init(void) {
   IsttaskHandle = osThreadCreate(osThread(Isttask), NULL);
 
   /* definition and creation of Gimbal_Task */
-  osThreadDef(Gimbal_Task, StartGimbalTask, osPriorityIdle, 0, 512);
+  osThreadDef(Gimbal_Task, StartGimbalTask, osPriorityNormal, 0, 512);
   Gimbal_TaskHandle = osThreadCreate(osThread(Gimbal_Task), NULL);
 
   /* definition and creation of ShooterTask */
-  osThreadDef(ShooterTask, StartShooterTask, osPriorityIdle, 0, 512);
+  osThreadDef(ShooterTask, StartShooterTask, osPriorityNormal, 0, 512);
   ShooterTaskHandle = osThreadCreate(osThread(ShooterTask), NULL);
 
   /* definition and creation of CommandTask */

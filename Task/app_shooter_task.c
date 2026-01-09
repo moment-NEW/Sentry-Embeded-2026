@@ -18,7 +18,7 @@ DjiMotorInstance_s *Right_Wheel;
 
 
 DjiMotorInstance_s *Trigger;
-
+extern uint8_t gimbal_ready_flag;
 extern board_instance_t *board_instance;
 #define DEBUG
 #ifdef DEBUG
@@ -185,17 +185,19 @@ void StartShooterTask(void const * argument)
   //拨弹盘初始化
 	pos_target_tr=Trigger->message.out_position;//防止出问题
   // 初始化时按固定方向旋转到原点
-while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.03f) {
-    pos_target_tr -= 0.001f;
-    pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
-    pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
-    Motor_Dji_Control(Trigger, pos_target_tr);
-    Motor_Dji_Transmit(Trigger);
-		if(Trigger->message.torque_current>MAX_TORQUE||Trigger->message.torque_current<-MAX_TORQUE)break;
-    //或许可以来个超时检测，但是等看门狗什么的都完善了再一并加入吧
-    osDelay(1);
-}
-
+//while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.03f) {
+//    pos_target_tr -= 0.001f;
+//    pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
+//    pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
+//    Motor_Dji_Control(Trigger, pos_target_tr);
+//    Motor_Dji_Transmit(Trigger);
+//		if(Trigger->message.torque_current>MAX_TORQUE||Trigger->message.torque_current<-MAX_TORQUE)break;
+//    //或许可以来个超时检测，但是等看门狗什么的都完善了再一并加入吧
+//    osDelay(1);
+//}
+	while(gimbal_ready_flag!=1){
+		osDelay(1);
+	}
   /* Infinite loop */
   for(;;)
   { 
@@ -337,7 +339,7 @@ while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.03f) {
 //					pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
 					pos_target_tr=target_speed_tr;	
 				}
-				target_wheel_speed=-2000.0f;
+				target_wheel_speed=-4500.0f;
       //  Motor_Dji_Control(Trigger,pos_target_tr);
 			//	Motor_Dji_Transmit(Trigger);
         break;

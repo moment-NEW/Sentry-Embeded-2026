@@ -120,7 +120,6 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name>?</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -224,6 +223,21 @@
           <count>13</count>
           <WinNumber>1</WinNumber>
           <ItemText>Shooter_State</ItemText>
+        </Ww>
+        <Ww>
+          <count>14</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>gimbal_ready_flag</ItemText>
+        </Ww>
+        <Ww>
+          <count>15</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>YawOffset</ItemText>
+        </Ww>
+        <Ww>
+          <count>16</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>dt3</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -331,6 +345,16 @@
           <count>20</count>
           <WinNumber>2</WinNumber>
           <ItemText>last_ControlMode</ItemText>
+        </Ww>
+        <Ww>
+          <count>21</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\frame\../Task/app_command_task.c\board_instance-&gt;received_target_up_pitch</ItemText>
+        </Ww>
+        <Ww>
+          <count>22</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\frame\../Task/app_command_task.c\board_instance-&gt;received_target_up_pitch</ItemText>
         </Ww>
       </WatchWindow2>
       <Tracepoint>
