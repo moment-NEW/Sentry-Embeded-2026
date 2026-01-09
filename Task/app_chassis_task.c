@@ -37,11 +37,13 @@ float test_vel_tr=0.0,test_output_tr=0.0;
 uint16_t lasttime=0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
 //float target1=0.0,target2=0.0,target3=0.0,target4=0.0;
-float target_up_position=0.3f;//暂时的逻辑，一定要记得改回来！！！！！
+float target_up_position=3.14159f;//暂时的逻辑，一定要记得改回来！！！！！
 float target_up_pitch=0.0f;
 #endif
+uint8_t rune_flag=0;//打符开关
+uint8_t minipc_mode=0;//0自瞄，1打符
 uint8_t control_mode=RC_MODE;//默认遥控器模式
-uint16_t max_torque=3000;
+uint16_t max_torque=3300;
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
@@ -308,8 +310,8 @@ void StartChassisTask(void const * argument)
 			osDelay(1);
 		}
 		Minipc_ConfigAimTx(MiniPC,&board_instance->received_up_yaw_pos,&board_instance->received_up_pitch_pos,
-                        &enemy_color,&control_mode,
-                        NULL,&Down_yaw->message.out_position);//这里可能引入悬空指针，但是似乎没影响程序运行，后面再管。
+                        &enemy_color,&minipc_mode,
+                        &rune_flag,&Down_yaw->message.out_position);//这里可能引入悬空指针，但是似乎没影响程序运行，后面再管。
 		
     
       
@@ -355,13 +357,17 @@ void StartChassisTask(void const * argument)
     }else{
       shoot_bool=0;
     }
-    board_send_message(board_instance,target_up_position,Down_yaw->message.out_position ,target_up_pitch, combined_state_global, shoot_bool);
+
+    Minipc_UpdateAllInstances();
+    board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
+    
     switch (control_mode)
     {
     case PC_MODE:
         // Chassis->gimbal_yaw_angle
-        target_up_position=MiniPC_SelfAim->message.exp_aim_pack.yaw;
-        target_up_pitch=MiniPC_SelfAim->message.exp_aim_pack.pitch;
+        //后面这里加个自动打弹逻辑
+        target_up_position=MiniPC_SelfAim->message.norm_aim_pack.yaw;
+        target_up_pitch=MiniPC_SelfAim->message.norm_aim_pack.pitch;
 
         Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
         Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
@@ -369,13 +375,37 @@ void StartChassisTask(void const * argument)
         Chassis->Chassis_speed.Vy=MiniPC->message.ch_pack.y_speed;
         // Down_yaw->target_position=MiniPC->message.ch_pack.yaw;
         Chassis_Control(Chassis);
+
+
+
+        if(shoot_bool){
+                if(lasttime > 200) {
+                    // 堵转反转
+                    Trigger->target_velocity = -target_tr;
+                    lasttime++;
+                    if(lasttime > 400) lasttime = 0;
+                } else {
+                    // 正常射击
+                    Trigger->target_velocity = target_tr;
+                    if(Trigger->message.torque_current > max_torque || Trigger->message.torque_current < -max_torque) {
+                        lasttime++;
+                    } else {
+                        lasttime = 0;
+                    }
+                }
+            }else{
+      Trigger->target_velocity=0.0f;
+    }
+    Motor_Dji_Control(Trigger,Trigger->target_velocity);
+    Motor_Dji_Transmit(Trigger);
+
         break;
 		
     case RC_MODE:
         /* code */
 				//ch2：x，ch3：y
         //Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
-		Chassis_Change_Mode(Chassis, CHASSIS_FOLLOW_GIMBAL);
+		    Chassis_Change_Mode(Chassis, CHASSIS_FOLLOW_GIMBAL);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
@@ -394,6 +424,10 @@ void StartChassisTask(void const * argument)
 				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
         Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
 				Motor_Dm_Transmit(Down_yaw);
+
+         target_tr=0.0f;
+        Trigger->output=0.0f;
+        Motor_Dji_Transmit(Trigger);
 				break;
 					
         
@@ -402,6 +436,7 @@ void StartChassisTask(void const * argument)
 				Chassis_Enable(*Chassis);
 				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
 				Motor_Dm_Transmit(Down_yaw);
+				Pid_Enable(Trigger->velocity_pid);
 				
         break;
 		//case SCROP_MODE:
@@ -409,7 +444,7 @@ void StartChassisTask(void const * argument)
     case DISABLE_MODE:
 				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(Down_yaw);
-		
+				Pid_Disable(Trigger->velocity_pid);
 				Chassis_Change_Mode(Chassis,CHASSIS_NORMAL);
         Chassis_Disable(*Chassis);
 				
@@ -419,6 +454,7 @@ void StartChassisTask(void const * argument)
         
         break;
 			case SHOOT_MODE:
+        target_tr=60.0f;
 				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
 				Motor_Dm_Transmit(Down_yaw);
 		
@@ -428,12 +464,13 @@ void StartChassisTask(void const * argument)
         Chassis->Chassis_speed.Vx=0.0f;
         Chassis->Chassis_speed.Vy=0.0f;
 				Chassis->Chassis_speed.Vw=0.0f;
+				Pid_Enable(Trigger->velocity_pid);
                 if(shoot_bool){
-                    if(lasttime > 100) {
+                    if(lasttime > 200) {
                         // 堵转反转
                         Trigger->target_velocity = -target_tr;
                         lasttime++;
-                        if(lasttime > 200) lasttime = 0;
+                        if(lasttime > 400) lasttime = 0;
                     } else {
                         // 正常射击
                         Trigger->target_velocity = target_tr;
@@ -447,22 +484,31 @@ void StartChassisTask(void const * argument)
           Trigger->target_velocity=0.0f;
         }
         Motor_Dji_Control(Trigger,Trigger->target_velocity);
-                if(Trigger->message.torque_current>max_torque||Trigger->message.torque_current<-max_torque){
-                    lasttime++;
-                    if(lasttime>100){
-                    Trigger->output=0.0;
-                    }
-                }else{
-                    lasttime=0;
-                }
+//                if(Trigger->message.torque_current>max_torque||Trigger->message.torque_current<-max_torque){
+//                    lasttime++;
+//                    if(lasttime>100){
+//                    Trigger->output=0.0;
+//                    }
+//                }else{
+//                    lasttime=0;
+//                }
         Motor_Dji_Transmit(Trigger);
         break;
       case UP_MODE:
       //小云台逻辑
         target_up_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
         target_up_pitch-=(CH_Receive_s->dr16_handle.ch1)*3.1415/ 360000.0f;
-				target_up_position=target_up_position>1.7?1.7:target_up_position;
-				target_up_position=target_up_position<-1.7?-1.7:target_up_position;
+        
+				// if (target_up_position > PI) target_up_position -= 2 * PI;
+				// if (target_up_position < -PI) target_up_position += 2 * PI;
+				// if (target_up_position < 1.7f && target_up_position > -1.7f) {
+				// 		if (target_up_position > 0) target_up_position = 1.7f;
+				// 		else target_up_position = -1.7f;
+				// }
+        //重新改回原来基于IMU的限幅
+        target_up_position=target_up_position<-1.7f? -1.7f:target_up_position;
+        target_up_position=target_up_position>1.7f? 1.7f:target_up_position;
+
 				target_up_pitch=target_up_pitch<-0.3?-0.3:target_up_pitch;
 				target_up_pitch=target_up_pitch>0.7?0.7:target_up_pitch;
 				//底盘逻辑
@@ -472,12 +518,27 @@ void StartChassisTask(void const * argument)
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
         //大yaw
-        Motor_Dm_Control(Down_yaw,target_position);
-				test_output=Down_yaw->output;
-				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
+        //Motor_Dm_Control(Down_yaw,target_position);
+				//test_output=Down_yaw->output;
+				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
+				target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+			  test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,QEKF_INS.Gyro[2]);
+				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
 				Motor_Dm_Transmit(Down_yaw);
+				
+        Pid_Disable(Trigger->velocity_pid);
+        target_tr=0.0f;
+        Trigger->output=0.0f;
+        Motor_Dji_Transmit(Trigger);
         break;
 			case SCROP_MODE:
+        // Yaw 锯齿波: 从 1.7 扫到 4.58 (即回绕后的 -1.7)，周期 2秒
+       // target_up_position = (float)(HAL_GetTick() % 2000) / 2000.0f * 2.883f + 1.7f;
+        //if (target_up_position > 3.14159f) target_up_position -= 6.28318f; 
+        target_up_position = -3.0f;
+        // Pitch 锯齿波: -0.3 到 0.7，周期 3秒
+        target_up_pitch = (float)(HAL_GetTick() % 1500) / 3000.0f * 1.0f - 0.3f;
+
 				Chassis_Change_Mode(Chassis, CHASSIS_GYROSCOPE);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
@@ -497,11 +558,17 @@ void StartChassisTask(void const * argument)
 				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
         Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
 				Motor_Dm_Transmit(Down_yaw);
+
+
+        target_tr=0.0f;
+        Trigger->output=0.0f;
+				Pid_Disable(Trigger->velocity_pid);
+        Motor_Dji_Transmit(Trigger);
 				break;
     default:
+			mode=DISABLE_MODE;
         break;
     }
     osDelay(1);
-  }
-  /* USER CODE END StartChassisTask */
+  }  /* USER CODE END StartChassisTask */
 }
