@@ -198,7 +198,7 @@ void isttask(void const * argument)
     // 初始化四元数（简化版，实际应用中需要更复杂的初始化）
     while (gimbal_ready_flag!=1)
     {
-        osDelay(1);
+        osDelay(5);
         //有时间加个超时逻辑
 
     }
