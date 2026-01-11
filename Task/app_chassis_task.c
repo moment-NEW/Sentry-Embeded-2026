@@ -32,7 +32,7 @@ float target_up_pitch=0.0;
 extern uint8_t mode;
 extern uint8_t combined_state_global;
 float target_position=0.0f,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
-float target_tr=60.0;
+float target_tr=40.0;
 float test_vel_tr=0.0,test_output_tr=0.0;
 uint16_t lasttime=0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
@@ -43,7 +43,7 @@ float target_up_pitch=0.0f;
 uint8_t rune_flag=0;//打符开关
 uint8_t minipc_mode=0;//0自瞄，1打符
 uint8_t control_mode=RC_MODE;//默认遥控器模式
-uint16_t max_torque=3300;
+uint16_t max_torque=5000;
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
@@ -219,8 +219,8 @@ static  DjiMotorInitConfig_s Trigger_Config = {
         .out_max = 4000.0f,                 // 输出限幅(速度环输入)
     },
     .velocity_pid_config = {
-        .kp = 160.0f,                       // 速度环比例系数
-        .ki = 0.005f,                        // 速度环积分系数
+        .kp = 1400.0f,                       // 速度环比例系数
+        .ki = 0.0f,                        // 速度环积分系数
         .kd = 0.0f,                        // 速度环微分系数
         .kf = 0.0f,                        // 前馈系数
         .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
@@ -239,7 +239,7 @@ MiniPC_Config miniPC_config = {
 
 MiniPC_Config SelfAim_config = {
     .callback = NULL,
-    .message_type = USB_MSG_EXP_AIM_RX, // 底盘数据
+    .message_type = USB_MSG_AIM_RX, // 底盘数据
     .Send_message_type = USB_MSG_EXP_AIM_TX // 发送数据类型
 };
 
@@ -359,11 +359,15 @@ void StartChassisTask(void const * argument)
     }
 
     Minipc_UpdateAllInstances();
+		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0X31){
     board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
-    
+		}
+		
+    target_position=Down_yaw->message.out_position;
     switch (control_mode)
     {
     case PC_MODE:
+        
         // Chassis->gimbal_yaw_angle
         //后面这里加个自动打弹逻辑
         target_up_position=MiniPC_SelfAim->message.norm_aim_pack.yaw;
@@ -379,6 +383,7 @@ void StartChassisTask(void const * argument)
 
 
         if(shoot_bool){
+								Pid_Enable(Trigger->velocity_pid);
                 if(lasttime > 200) {
                     // 堵转反转
                     Trigger->target_velocity = -target_tr;
@@ -394,10 +399,21 @@ void StartChassisTask(void const * argument)
                     }
                 }
             }else{
+							Pid_Disable(Trigger->velocity_pid);
+							
       Trigger->target_velocity=0.0f;
     }
+		
     Motor_Dji_Control(Trigger,Trigger->target_velocity);
     Motor_Dji_Transmit(Trigger);
+
+
+
+
+//    target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+//    test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,QEKF_INS.Gyro[2]);
+//    Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
+//	  Motor_Dm_Transmit(Down_yaw);
 
         break;
 		
