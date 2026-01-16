@@ -53,9 +53,9 @@ static ChassisInitConfig_s Chassis_config={
 		.wheel_radius= 0.0765f,
 	  .chassis_radius= 0.26176f,
 		},
-    .Gyroscope_Speed = 0.01f,  // 设置小陀螺旋转速度 (rad/s)
+    .Gyroscope_Speed = 0.3f,  // 设置小陀螺旋转速度 (rad/s)
 		.gimbal_follow_pid_config={
-		  .kp = 5.0f,
+		  .kp = 4.5f,
       .ki = 0.0f,
       .kd = 0.0f,
 			.dead_zone = 0.15f,
@@ -240,7 +240,7 @@ MiniPC_Config miniPC_config = {
 MiniPC_Config SelfAim_config = {
     .callback = NULL,
     .message_type = USB_MSG_AIM_RX, // 底盘数据
-    .Send_message_type = USB_MSG_EXP_AIM_TX // 发送数据类型
+    .Send_message_type = USB_MSG_FRIEND1_TX // 发送数据类型
 };
 
 
@@ -257,13 +257,16 @@ board_config_t board_config = {
 
 static void Chassis_Disable(ChassisInstance_s chassis){
 	for(uint8_t i=0;i<4;i++){
+	chassis.chassis_motor[i]->output=0.0f;
 	Pid_Disable(chassis.chassis_motor[i]->velocity_pid);
+	Pid_Disable(chassis.chassis_motor[i]->angle_pid);
 	}
 	
 }
 static void Chassis_Enable(ChassisInstance_s chassis){
 	for(uint8_t i=0;i<4;i++){
 	Pid_Enable(chassis.chassis_motor[i]->velocity_pid);
+	Pid_Enable(chassis.chassis_motor[i]->angle_pid);
 	}
 	
 }
@@ -323,7 +326,7 @@ void StartChassisTask(void const * argument)
 		float dt2 = 0.001f;  // 初始dt
 		dwt2_cnt_last = DWT->CYCCNT;
   /* Infinite loop */
-  //target_position=Down_yaw->message.out_position;
+  
   for(;;)
   {
 		#ifdef DEBUG
@@ -359,11 +362,11 @@ void StartChassisTask(void const * argument)
     }
 
     Minipc_UpdateAllInstances();
-		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0X31){
+		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0x31){
     board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
 		}
 		
-    target_position=Down_yaw->message.out_position;
+    
     switch (control_mode)
     {
     case PC_MODE:
@@ -379,8 +382,14 @@ void StartChassisTask(void const * argument)
         Chassis->Chassis_speed.Vy=MiniPC->message.ch_pack.y_speed;
         // Down_yaw->target_position=MiniPC->message.ch_pack.yaw;
         Chassis_Control(Chassis);
+        //临时逻辑
+        Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_DISABLE);
+				Motor_Dm_Transmit(Down_yaw);
+				Pid_Disable(Trigger->velocity_pid);
 
 
+        target_position=Quater.yaw;
+        //防止疯车用的
 
         if(shoot_bool){
 								Pid_Enable(Trigger->velocity_pid);
@@ -430,6 +439,8 @@ void StartChassisTask(void const * argument)
 				target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
         target_position=target_position>PI?target_position-2*PI:target_position;
         target_position=target_position<-PI?target_position+2*PI:target_position;
+        target_position=target_position>PI+0.1f?PI:target_position;
+        target_position=target_position<-PI-0.1f?-PI:target_position;
         target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
         
 				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);
@@ -454,6 +465,9 @@ void StartChassisTask(void const * argument)
 				Motor_Dm_Transmit(Down_yaw);
 				Pid_Enable(Trigger->velocity_pid);
 				
+                // 修正2: 切换模式时，将目标设为当前IMU角度，实现平滑“锁头”
+                target_position = Quater.yaw; 
+
         break;
 		//case SCROP_MODE:
 				
@@ -468,6 +482,9 @@ void StartChassisTask(void const * argument)
         Chassis->Chassis_speed.Vy=0.0f;
 				Chassis->Chassis_speed.Vw=0.0f;
         
+        // 修正: 禁用模式下持续重置目标位置为当前角度，防止切出时疯转
+        target_position = Quater.yaw;
+
         break;
 			case SHOOT_MODE:
         target_tr=60.0f;
@@ -480,7 +497,9 @@ void StartChassisTask(void const * argument)
         Chassis->Chassis_speed.Vx=0.0f;
         Chassis->Chassis_speed.Vy=0.0f;
 				Chassis->Chassis_speed.Vw=0.0f;
-				Pid_Enable(Trigger->velocity_pid);
+				Pid_Enable(Trigger->velocity_pid);                
+                // 修正: 射击模式下大Yaw无力，需同步目标值防止切回RC时跳变
+                target_position = Quater.yaw;
                 if(shoot_bool){
                     if(lasttime > 200) {
                         // 堵转反转
@@ -551,9 +570,9 @@ void StartChassisTask(void const * argument)
         // Yaw 锯齿波: 从 1.7 扫到 4.58 (即回绕后的 -1.7)，周期 2秒
        // target_up_position = (float)(HAL_GetTick() % 2000) / 2000.0f * 2.883f + 1.7f;
         //if (target_up_position > 3.14159f) target_up_position -= 6.28318f; 
-        target_up_position = -3.0f;
+       
         // Pitch 锯齿波: -0.3 到 0.7，周期 3秒
-        target_up_pitch = (float)(HAL_GetTick() % 1500) / 3000.0f * 1.0f - 0.3f;
+        
 
 				Chassis_Change_Mode(Chassis, CHASSIS_GYROSCOPE);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
@@ -564,6 +583,8 @@ void StartChassisTask(void const * argument)
 				target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
         target_position=target_position>PI?target_position-2*PI:target_position;
         target_position=target_position<-PI?target_position+2*PI:target_position;
+        if(target_position>PI+0.1f) target_position=PI;
+        if(target_position<-PI-0.1f) target_position=-PI;
         target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
         
 				//Down_yaw->target_velocity=Pid_Calculate(Down_yaw->angle_pid,Down_yaw->target_position,QEKF_INS.Yaw);

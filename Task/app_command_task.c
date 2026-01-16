@@ -36,7 +36,12 @@ uint8_t Mode_Change(Dr16Instance_s *dr16){
     
     case 0x13: // s1=1 (上), s2=3 (中)
       
-		mode = last_mode==DISABLE_MODE?TRANS_MODE:RC_MODE;
+      
+      if(last_mode == PC_MODE || last_mode == DISABLE_MODE) {
+          mode = TRANS_MODE;
+      } else {
+          mode = RC_MODE;
+      }
 			
 		return mode;
       break;
