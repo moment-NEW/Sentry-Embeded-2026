@@ -30,6 +30,7 @@ float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 float target_up_pitch=0.0;
 #else
+uint32_t cnt=0;
 extern uint8_t mode;
 extern uint8_t combined_state_global;
 float target_position=0.0f,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
@@ -45,6 +46,7 @@ uint8_t rune_flag=0;//打符开关
 uint8_t minipc_mode=0;//0自瞄，1打符
 uint8_t control_mode=RC_MODE;//默认遥控器模式
 uint16_t max_torque=5000;
+	float dt2 = 0.001f;  // 初始dt
 //配置
 static ChassisInitConfig_s Chassis_config={
 		.type = Omni_Wheel,
@@ -324,7 +326,7 @@ void StartChassisTask(void const * argument)
     
     
     uint32_t dwt2_cnt_last = 0;
-		float dt2 = 0.001f;  // 初始dt
+	
 		dwt2_cnt_last = DWT->CYCCNT;
   /* Infinite loop */
   
@@ -332,7 +334,7 @@ void StartChassisTask(void const * argument)
   {
 		#ifdef DEBUG
 		test_speed=Down_yaw->message.out_velocity;
-    
+    cnt=board_instance->can_instance->cnt;
     uint16_t last_wheel=CH_Receive_s->dr16_handle.wheel;
 //    speed1=Chassis->chassis_motor[0]->message.out_velocity;
 //    speed2=Chassis->chassis_motor[1]->message.out_velocity;
@@ -347,6 +349,7 @@ void StartChassisTask(void const * argument)
 		dt2 = Dwt_GetDeltaT(&dwt2_cnt_last);
 			test_vel_tr=Trigger->message.out_velocity;
 			test_output_tr=Trigger->message.torque_current;
+		
 		#endif
 
 		Get_Message(CH_Subs,CH_Receive_s);
