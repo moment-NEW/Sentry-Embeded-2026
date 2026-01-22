@@ -18,11 +18,17 @@ extern board_instance_t *board_instance;
 
 //变量声明
 uint8_t find_bool=0;
+#ifdef DEBUG    
+uint32_t can_count=0;
+
+#endif
+
 #ifndef DEBUG
 uint8_t ControlMode=DISABLE_MODE;
 float target_position=0.0;//后续改为上位机提供
 float target_up_position=0.0;
 #else
+float dt3 = 0.001f;  // 初始dt
 extern uint8_t mode;
 uint8_t ControlMode= RC_MODE;
 uint8_t gimbal_ready_flag;
@@ -380,7 +386,7 @@ void StartGimbalTask(void const * argument)
 {
 	#ifdef DEBUG
      uint32_t dwt_cnt_last3 = 0;
-     float dt3 = 0.001f;  // 初始dt
+     
      static float lasttime3 = 0;
     
     // 初始化DWT计数器
@@ -445,6 +451,7 @@ void StartGimbalTask(void const * argument)
   for(;;)
   {
 		#ifdef DEBUG
+        can_count=board_instance->can_instance->cnt;
 		test_speed=Up_yaw->message.out_velocity;
 		test_position=Up_yaw->message.out_position;
         static uint8_t send_flag=0;
