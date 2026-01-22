@@ -119,10 +119,6 @@
       <TargetDriverDllRegistry>
         <SetRegEntry>
           <Number>0</Number>
-          <Key>DLGUARM</Key>
-        </SetRegEntry>
-        <SetRegEntry>
-          <Number>0</Number>
           <Key>ARMRTXEVENTFLAGS</Key>
           <Name>-L70 -Z18 -C0 -M0 -T1</Name>
         </SetRegEntry>
@@ -238,6 +234,11 @@
           <count>16</count>
           <WinNumber>1</WinNumber>
           <ItemText>dt3</ItemText>
+        </Ww>
+        <Ww>
+          <count>17</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>encoder_target</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -355,6 +356,11 @@
           <count>22</count>
           <WinNumber>2</WinNumber>
           <ItemText>\\frame\../Task/app_command_task.c\board_instance-&gt;received_target_up_pitch</ItemText>
+        </Ww>
+        <Ww>
+          <count>23</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\frame\../Task/app_command_task.c\board_instance-&gt;can_instance-&gt;cnt</ItemText>
         </Ww>
       </WatchWindow2>
       <Tracepoint>

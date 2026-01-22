@@ -3,11 +3,11 @@
 <title>Static Call Graph - [frame\frame.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image frame\frame.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6220000: Last Updated: Fri Jan  9 14:21:26 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6220000: Last Updated: Sat Jan 10 17:56:32 2026
 <BR><P>
-<H3>Maximum Stack Usage =        776 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =        792 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
-StartShooterTask &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
+StartGimbalTask &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 <P>
 <H3>
 Functions with no stack information
@@ -2711,8 +2711,8 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> freertos.o(.rodata..L__const.MX_FREERTOS_Init.os_thread_def_defaultTask)
 </UL>
-<P><STRONG><a name="[8c]"></a>StartGimbalTask</STRONG> (Thumb, 2104 bytes, Stack size 112 bytes, app_gimbal_task.o(.text.StartGimbalTask))
-<BR><BR>[Stack]<UL><LI>Max Depth = 768 + Unknown Stack Size
+<P><STRONG><a name="[8c]"></a>StartGimbalTask</STRONG> (Thumb, 2360 bytes, Stack size 136 bytes, app_gimbal_task.o(.text.StartGimbalTask))
+<BR><BR>[Stack]<UL><LI>Max Depth = 792 + Unknown Stack Size
 <LI>Call Chain = StartGimbalTask &rArr; Motor_Dji_Register &rArr; Can_Register &rArr; Can_Init &rArr; Can_ID_Mask_Mode_Filter_Init &rArr; SEGGER_RTT_printf &rArr; SEGGER_RTT_vprintf &rArr; _PrintInt &rArr; _PrintUnsigned &rArr; _StoreChar &rArr; SEGGER_RTT_Write &rArr; SEGGER_RTT_WriteNoLock &rArr; _WriteBlocking
 </UL>
 <BR>[Calls]<UL><LI><a href="#[1e4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
@@ -4432,9 +4432,9 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[29c]"></a>_dadd</STRONG> (Thumb, 332 bytes, Stack size 16 bytes, daddsub_clz.o(x$fpl$dadd), UNUSED)
-<BR><BR>[Calls]<UL><LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
-<LI><a href="#[29b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dnaninf
+<BR><BR>[Calls]<UL><LI><a href="#[29b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dnaninf
 <LI><a href="#[29d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_dsub1
+<LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
 </UL>
 
 <P><STRONG><a name="[2a1]"></a>__fpl_dcmp_Inf</STRONG> (Thumb, 24 bytes, Stack size 0 bytes, dcmpi.o(x$fpl$dcmpinf), UNUSED)
@@ -4454,8 +4454,8 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[29f]"></a>_ddiv</STRONG> (Thumb, 560 bytes, Stack size 32 bytes, ddiv.o(x$fpl$ddiv), UNUSED)
-<BR><BR>[Calls]<UL><LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
-<LI><a href="#[29b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dnaninf
+<BR><BR>[Calls]<UL><LI><a href="#[29b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dnaninf
+<LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
 </UL>
 
 <P><STRONG><a name="[294]"></a>__aeabi_cdcmpeq</STRONG> (Thumb, 0 bytes, Stack size 32 bytes, deqf.o(x$fpl$deqf))
@@ -4513,8 +4513,8 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[2a4]"></a>_dmul</STRONG> (Thumb, 332 bytes, Stack size 32 bytes, dmul.o(x$fpl$dmul), UNUSED)
-<BR><BR>[Calls]<UL><LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
-<LI><a href="#[29b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dnaninf
+<BR><BR>[Calls]<UL><LI><a href="#[29b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dnaninf
+<LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
 </UL>
 
 <P><STRONG><a name="[29b]"></a>__fpl_dnaninf</STRONG> (Thumb, 156 bytes, Stack size 16 bytes, dnaninf.o(x$fpl$dnaninf))
@@ -4584,8 +4584,8 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[2a8]"></a>_f2d</STRONG> (Thumb, 86 bytes, Stack size 16 bytes, f2d.o(x$fpl$f2d), UNUSED)
-<BR><BR>[Calls]<UL><LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
-<LI><a href="#[2a9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_fnaninf
+<BR><BR>[Calls]<UL><LI><a href="#[2a9]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_fnaninf
+<LI><a href="#[29e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__fpl_dretinf
 </UL>
 
 <P><STRONG><a name="[2f7]"></a>__aeabi_dcmpeq</STRONG> (Thumb, 0 bytes, Stack size 8 bytes, dcmp.o(x$fpl$fcmp), UNUSED)

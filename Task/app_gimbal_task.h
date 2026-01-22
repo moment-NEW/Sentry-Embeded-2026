@@ -14,7 +14,7 @@
 #include "app_ins_task.h"
 #include "app_command_task.h"
 // alg层
-
+#include "alg_fliter.h"
 // BSP层
 #include "bsp_log.h"
 #include "bsp_dwt.h"

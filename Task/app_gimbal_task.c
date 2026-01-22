@@ -9,7 +9,7 @@
 #define IMU
 
 
-#define YAW_ORIGIN -3.02f
+#define YAW_ORIGIN -3.14f
 //实例声明
 //此处做了修改，现在完全不关心下云台电机
 DmMotorInstance_s *pitch;
@@ -27,12 +27,12 @@ extern uint8_t mode;
 uint8_t ControlMode= RC_MODE;
 uint8_t gimbal_ready_flag;
 
-
+float encoder_target=3.0f;
 float target_position=0.3,test_speed=0.0,test_position=0.0,target_speed=0.0,test_output=0.0;
 float target_up_speed=0.0;//yaw目标速度（用于IMU下）
 float target_up_position=0.0;
 float target_pitch_position=0.0;
-float temp_position=3.0;
+float temp_position=0.0;
 float output=0;
 float YawOffset=0.0f;
 extern quaternions_struct_t Quater;
@@ -120,10 +120,10 @@ static  DjiMotorInitConfig_s Up_config = {
     .reduction_ratio = 1,              // 减速比
 
     .angle_pid_config = {
-        .kp = 0.0f,
-        //.kp = 25.0f,                        // 位置环比例系数
-        .ki = 0.0f,  
-        //.ki = 0.03f,                       // 位置环积分系数
+        //.kp = 0.0f,
+        .kp = 33.0f,                        // 位置环比例系数
+        //.ki = 0.0f,  
+        .ki = 0.05f,                      // 位置环积分系数
         .kd = 0.0f,                        // 位置环微分系数
         .kf = 0.0f,                        // 前馈系数
         .angle_max = 2.0f * PI,//0.0f,                 // 角度最大值(限幅用，为0则不限幅)
@@ -416,7 +416,7 @@ void StartGimbalTask(void const * argument)
 			Up_yaw->velocity_pid->ki=0.0f;
         Motor_Dji_Control(Up_yaw,YAW_ORIGIN);
         Motor_Dji_Transmit(Up_yaw);
-        if(fabsf(Up_yaw->message.out_position-YAW_ORIGIN)<0.1f){
+        if(fabsf(Up_yaw->message.out_position-YAW_ORIGIN)<0.05f){
             gimbal_ready_flag=1;
             break;
         }
@@ -534,22 +534,40 @@ void StartGimbalTask(void const * argument)
                 temp_position=target_up_position;
                 Motor_Dji_Control(Up_yaw,temp_position);
                 #else
-                //target_up_speed=Pid_Calculate(Up_yaw->angle_pid,temp_position,Up_yaw->message.out_position);
                 // 1. 计算目标相对于底盘前方的相对角度 (IMU值)
-                float relative_target_imu = target_up_position - (board_instance->received_current_down_yaw - YawOffset);
+                float relative_target_imu = -(target_up_position - (board_instance->received_current_down_yaw - YawOffset));
                 // 归一化到 [-PI, PI]
                 while (relative_target_imu > PI) relative_target_imu -= 2.0f * PI;
                 while (relative_target_imu < -PI) relative_target_imu += 2.0f * PI;
 
                 // 2. 映射到编码器空间：考虑方向取反和机械零点偏移
-                float encoder_target = YAW_ORIGIN - relative_target_imu;
+                 encoder_target = YAW_ORIGIN - relative_target_imu;
                 // 归一化编码器目标值
                 while (encoder_target > PI) encoder_target -= 2.0f * PI;
                 while (encoder_target < -PI) encoder_target += 2.0f * PI;
 
-                target_up_speed=Pid_Calculate(Up_yaw->angle_pid,encoder_target,Up_yaw->message.out_position);
-               // target_up_speed=Pid_Calculate(Up_yaw->angle_pid,temp_position,Quater.yaw);
-								Up_yaw->output=Pid_Calculate(Up_yaw->velocity_pid, target_up_speed, Quater.gryo_yaw);
+                // // 3. 使用 fhan 生成规划轨迹
+                // static float td_yaw_v = 0.0f;
+                // const float r = 50.0f; // 决定跟踪快慢和最大加速度
+                // const float h = 0.001f; // 采样周期 (1ms)
+                
+                // // 计算用于 fhan 的最短路径误差 (x1)
+                // float error = temp_position - encoder_target;
+                // while (error > PI) error -= 2.0f * PI;
+                // while (error < -PI) error += 2.0f * PI;
+
+                // float fh = fhan_correct(error, td_yaw_v, r, h);
+                // temp_position += h * td_yaw_v;
+                // td_yaw_v += h * fh;
+                
+                // 规划值归一化
+                while (temp_position > PI) temp_position -= 2.0f * PI;
+                while (temp_position < -PI) temp_position += 2.0f * PI;
+
+                target_up_speed = Pid_Calculate(Up_yaw->angle_pid, target_up_position, Quater.yaw);
+								//target_up_speed = Pid_Calculate(Up_yaw->angle_pid, encoder_target, Up_yaw->message.out_position);
+								//target_up_speed = Pid_Calculate(Up_yaw->angle_pid, temp_position, Up_yaw->message.out_position);
+                Up_yaw->output = Pid_Calculate(Up_yaw->velocity_pid, target_up_speed, Quater.gryo_yaw);
                 #endif
 
 				Motor_Dji_Transmit(Up_yaw);
