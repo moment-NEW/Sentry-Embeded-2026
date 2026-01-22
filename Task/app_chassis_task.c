@@ -8,7 +8,8 @@
 #include "app_chassis_task.h"
 //宏定义
 #define DEBUG
-
+//用于测试板间通信
+#define CAN_DEBUG
 
 //实例声明
 ChassisInstance_s *Chassis;
@@ -365,7 +366,9 @@ void StartChassisTask(void const * argument)
 		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0x31){
     board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
 		}
-		
+    #ifdef CAN_DEBUG
+    board_send_message(board_instance,0.0f,Quater.yaw ,0.3f, combined_state_global, 0);
+		#endif
     
     switch (control_mode)
     {
