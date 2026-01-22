@@ -22,7 +22,7 @@
 #define FIRE_ORIGIN 0.0f//拨弹盘原点位置
 #define SHOOTER_RANGE 0.007//0.58f//一颗弹丸的位置
 #define HEAT_MAX 260;
-#define SHOOTER_WHEEL_SPEED -4500.0f//-2000.0f//-4000.0f;//射击轮目标速度
+#define SHOOTER_WHEEL_SPEED -5500.0f//-2000.0f//-4000.0f;//射击轮目标速度
 //状态枚举,
 typedef enum{
   SHOOTER_TEST=9,
