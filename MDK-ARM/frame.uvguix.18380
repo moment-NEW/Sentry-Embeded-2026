@@ -3841,10 +3841,10 @@
       <Doc>
         <Name>..\Task\app_gimbal_task.c</Name>
         <ColumnNumber>18</ColumnNumber>
-        <TopLine>139</TopLine>
+        <TopLine>133</TopLine>
         <CurrentLine>134</CurrentLine>
         <Folding>1</Folding>
-        <ContractedFolders>175,239,310</ContractedFolders>
+        <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
       </Doc>
     </MDIGroup>
