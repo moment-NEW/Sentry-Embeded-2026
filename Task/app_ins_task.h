@@ -22,7 +22,8 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "arm_math.h"
-#include "alg_quaternionEKF.h"  //已经接入，也可以切换成mahony
+//#include "alg_quaternionEKF.h"  //已经接入，也可以切换成mahony
+#include "MadgwickAHRS.h"
 #include "alg_pid.h"  //温度控制相关
 
 #include "math.h"
@@ -48,6 +49,7 @@ typedef struct
       float32_t pitch;   // 俯仰角（度）
     float32_t yaw;     // 偏航角（度）
     acceleration Acc;  // 保留加速度数据
+    float Gyro[3]; // 三轴陀螺仪数据
 }quaternions_struct_t;
 
 
@@ -65,9 +67,9 @@ void quaternion_normalize(float* quaternion);
 void quaternion_update(float* origin_quater);
 float calculate_norm(const float *arr);
 
-// EKF辅助函数
-void get_ekf_euler_angles(float* roll, float* pitch, float* yaw);
-uint8_t get_ekf_status(void);
+// // EKF辅助函数
+// void get_ekf_euler_angles(float* roll, float* pitch, float* yaw);
+// uint8_t get_ekf_status(void);
 
 /**
  * @brief EKF使用示例
@@ -96,7 +98,7 @@ extern PidInstance_s *ins_pid;                // INS PID控制器
 extern uint8_t test_data[5];                  // 磁力计测试数据
 
 // EKF相关外部访问接口
-extern QEKF_INS_t QEKF_INS;                   // EKF状态结构体（来自alg_quaternionEKF.c）
+//extern QEKF_INS_t QEKF_INS;                   // EKF状态结构体（来自alg_quaternionEKF.c）
 
 
 #endif
