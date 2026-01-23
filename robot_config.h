@@ -25,6 +25,7 @@
 // #define USER_CAN3_FIFO_0                 // 使用 CAN3 FIFO0
 // #define USER_CAN3_FIFO_1                 // 使用 CAN3 FIFO1
 
+#define USER_LOG                           // 启用日志模块
 #ifdef USE_FREERTOS
 #include "FreeRTOS.h"
 #define user_malloc pvPortMalloc
