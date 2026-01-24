@@ -8,9 +8,9 @@
 
 #include "Com_System.h"
 
-#define BOARD_TX_ID_BASE 0x600
+#define BOARD_TX_ID_BASE 0x00D
 //实际发送的id是 BOARD_TX_ID_BASE + board_id，接收的id是 BOARD_RX_ID_BASE + board_id
-#define BOARD_RX_ID_BASE 0x700
+#define BOARD_RX_ID_BASE 0x00E
 
 
 #define UP2DOWN_MESSAGE_TYPE 1

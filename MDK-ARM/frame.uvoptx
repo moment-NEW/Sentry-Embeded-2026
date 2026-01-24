@@ -315,7 +315,7 @@
         <Ww>
           <count>14</count>
           <WinNumber>2</WinNumber>
-          <ItemText>\\frame\../Task/app_command_task.c\board_instance</ItemText>
+          <ItemText>\\frame\../Task/app_command_task.c\board_instance,0x10</ItemText>
         </Ww>
         <Ww>
           <count>15</count>
