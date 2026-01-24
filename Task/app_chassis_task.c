@@ -329,7 +329,7 @@ void StartChassisTask(void const * argument)
 	
 		dwt2_cnt_last = DWT->CYCCNT;
   /* Infinite loop */
-  
+  static uint8_t send_flag=0;
   for(;;)
   {
 		#ifdef DEBUG
@@ -364,13 +364,18 @@ void StartChassisTask(void const * argument)
     }else{
       shoot_bool=0;
     }
-
+		
     Minipc_UpdateAllInstances();
 		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0x31){
     board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
 		}
     #ifdef CAN_DEBUG
+		if(send_flag==1){
     board_send_message(board_instance,0.0f,Quater.yaw ,0.3f, combined_state_global, 0);
+		send_flag=0;
+		}else{
+			send_flag=1;
+		}
 		#endif
     
     switch (control_mode)

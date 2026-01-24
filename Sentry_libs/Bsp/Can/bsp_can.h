@@ -79,6 +79,6 @@ bool Can_Transmit_External_Tx_Buff(const CanInstance_s *instance, const uint8_t 
  * @param instance 指向已注册的CanInstance_s结构体的指针，表示要使用的CAN实例
  * @return 如果数据发送成功则返回true，否则返回false
  */
-bool Can_Transmit(const CanInstance_s *instance);
+bool Can_Transmit(CanInstance_s *instance);
 #endif //USER_CAN_STANDARD
 #endif //__BSP_CAN_H__

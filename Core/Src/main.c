@@ -31,7 +31,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "bsp_dwt.h"
-#include "app_gimbal_task.h"
+
 #include "bsp_log.h"
 #include "bsp_can.h"
 /* USER CODE END Includes */

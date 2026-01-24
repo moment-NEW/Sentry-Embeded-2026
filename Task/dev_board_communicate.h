@@ -9,10 +9,10 @@
 
 #include "Com_System.h"
 
-#define BOARD_TX_ID_BASE 0x700
+#define BOARD_TX_ID_BASE 0x00E
 //实际发送的id是 BOARD_TX_ID_BASE + board_id，接收的id是 BOARD_RX_ID_BASE + board_id
 //但是这里是另外一个板，我手动替换了两个的id前缀，这样就能收发对应了，实际上绝对不应该这么做
-#define BOARD_RX_ID_BASE 0x600
+#define BOARD_RX_ID_BASE 0x00D
 
 
 #define UP2DOWN_MESSAGE_TYPE 1

@@ -85,9 +85,9 @@ void board_send_message(board_instance_t *instance, float data1, float data2,flo
     memcpy(instance->can_instance->tx_buff, instance->data_buffer, 8);
     if(!Can_Transmit(instance->can_instance))
     {
-        #ifdef DEBUG
-        Log_Error("Board ID %d message send failed\r\n", instance->board_id);
-        #endif
+        
+        Log_Error("Board message send failed\r\n");
+        
     }
 }
 
