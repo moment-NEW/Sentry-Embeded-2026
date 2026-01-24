@@ -385,6 +385,20 @@ static inline FusionEuler FusionQuaternionToEuler(const FusionQuaternion quatern
     }};
 }
 
+/**
+ * @brief Convert quaternion to Euler angles in Radians
+ * @param quaternion Input quaternion
+ * @return Corresponding Euler angles in Radians (roll, pitch, yaw)
+ */
+static inline FusionEuler FusionQuaternionToEulerRad(const FusionQuaternion quaternion) {
+    const float halfMinusQySquared = 0.5f - quaternion.element.y * quaternion.element.y;
+    return (FusionEuler){.angle = {
+        .roll = atan2f(quaternion.element.w * quaternion.element.x + quaternion.element.y * quaternion.element.z, halfMinusQySquared - quaternion.element.x * quaternion.element.x),
+        .pitch = FusionAsin(2.0f * (quaternion.element.w * quaternion.element.y - quaternion.element.z * quaternion.element.x)),
+        .yaw = atan2f(quaternion.element.w * quaternion.element.z + quaternion.element.x * quaternion.element.y, halfMinusQySquared - quaternion.element.z * quaternion.element.z),
+    }};
+}
+
 //------------------------------------------------------------------------------
 // Earth Coordinate System Definitions
 

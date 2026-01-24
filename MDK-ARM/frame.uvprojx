@@ -1034,6 +1034,16 @@
               <FileType>5</FileType>
               <FilePath>..\Sentry_libs\Algorithm\Madgwick\MadgwickAHRS.h</FilePath>
             </File>
+            <File>
+              <FileName>Fusion_AHRS.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\Madgwick\Fusion_AHRS.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Fusion_AHRS.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Sentry_libs\Algorithm\Madgwick\Fusion_AHRS.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

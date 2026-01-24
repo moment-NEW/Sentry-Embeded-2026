@@ -35,9 +35,9 @@ MadgwickParam madgwickParam;
 #define TIMEOUT (5)
 
 /**
- * @brief Threshold for bias correction (degrees/second)
+ * @brief Threshold for bias correction (radians/second)
  */
-#define THRESHOLD (3.0f)
+#define THRESHOLD (0.05f)
 
 /**
  * @brief Flag to enable gradient descent compensation
@@ -127,6 +127,13 @@ void FusionAhrsReset(FusionAhrs *const ahrs) {
     madgwickParam.fq1 = 0.0f;
     madgwickParam.fq2 = 0.0f;
     madgwickParam.fq3 = 0.0f;
+
+    // Initialize gradient descent momentum parameters
+    madgwickParam.v_s0 = 0.0f;
+    madgwickParam.v_s1 = 0.0f;
+    madgwickParam.v_s2 = 0.0f;
+    madgwickParam.v_s3 = 0.0f;
+    madgwickParam.momentum = 0.0f; // Default to no momentum for stability
 }
 
 /**
@@ -181,6 +188,9 @@ void FusionAhrsUpdateNoMagnetometer(FusionAhrs *const ahrs, const FusionVector g
 void FusionAhrsUpdate(FusionAhrs *const ahrs, const FusionVector gyroscope, 
                      const FusionVector accelerometer, const float deltaTime) {
 #define Q ahrs->quaternion.element
+
+    // Update Madgwick internal sample frequency to match system
+    madgwickParam.invSampleFreq = deltaTime;
 
     // Store accelerometer data for later use
     ahrs->accelerometer = accelerometer;
@@ -243,8 +253,8 @@ void FusionAhrsUpdate(FusionAhrs *const ahrs, const FusionVector gyroscope,
         }
     }
 
-    // Convert gyroscope data to radians/second and scale by 0.5
-    const FusionVector halfGyroscope = FusionVectorMultiplyScalar(gyroscope, FusionDegreesToRadians(0.5f));
+    // Use current gyroscope data directly as radians/second and scale by 0.5
+    const FusionVector halfGyroscope = FusionVectorMultiplyScalar(gyroscope, 0.5f);
 
     // Apply feedback to gyroscope data
     const FusionVector adjustedHalfGyroscope = FusionVectorAdd(halfGyroscope, 
@@ -572,10 +582,10 @@ void Madgwick_updateIMU(float gx, float gy, float gz, float ax, float ay, float 
     float qDot1, qDot2, qDot3, qDot4;
     float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
 
-    // Convert gyroscope units from degrees/second to radians/second
-    gx *= 0.0174533f;
-    gy *= 0.0174533f;
-    gz *= 0.0174533f;
+    // Gyroscope is already in radians/second
+    // gx *= 0.0174533f;
+    // gy *= 0.0174533f;
+    // gz *= 0.0174533f;
 
     // Calculate quaternion derivative from gyroscope readings
     qDot1 = 0.5f * (-madgwickParam.q1 * gx - madgwickParam.q2 * gy - madgwickParam.q3 * gz);

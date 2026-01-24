@@ -24,6 +24,7 @@
 #include "arm_math.h"
 //#include "alg_quaternionEKF.h"  //已经接入，也可以切换成mahony
 #include "MadgwickAHRS.h"
+#include "Fusion_AHRS.h"
 #include "alg_pid.h"  //温度控制相关
 
 #include "math.h"
@@ -34,7 +35,7 @@
 
 //CMSIS好像要求用float32_t，可能是为了可移植性考虑。我这里就不管了
 
-#define M_PI 3.14159265358979323846
+
 
 typedef struct
 {
