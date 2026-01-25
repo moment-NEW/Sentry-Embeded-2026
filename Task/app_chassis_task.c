@@ -325,6 +325,8 @@ void StartChassisTask(void const * argument)
     uint32_t dwt2_cnt_last = 0;
 		float dt2 = 0.001f;  // 初始dt
 		dwt2_cnt_last = DWT->CYCCNT;
+
+    static uint8_t send_flag=0;
   /* Infinite loop */
   
   for(;;)
@@ -363,8 +365,14 @@ void StartChassisTask(void const * argument)
 
     Minipc_UpdateAllInstances();
 		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0x31){
-    board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
-		}
+      //两个周期跑一次。也就是500Hz
+      if(send_flag==0){
+        send_flag=1;
+      }else{
+      board_send_message(board_instance,target_up_position,Quater.yaw ,target_up_pitch, combined_state_global, shoot_bool);
+      send_flag=0;
+      }
+  }
 		
     
     switch (control_mode)
