@@ -75,7 +75,7 @@ static inline int Clamp(const int value, const int min, const int max);
 // AHRS Algorithm Implementation
 
 // Flag to enable/disable gradient descent fusion
-int use_grad = 1;
+int use_grad = 0;
 
 /**
  * @brief Initialize AHRS algorithm structure

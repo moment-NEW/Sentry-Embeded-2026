@@ -51,8 +51,8 @@ float32_t Gyro_Offset[3] = {0};        // 陀螺仪零偏
 
 // 温度控制PID配置
 PidInitConfig_s temp_pid_config = {
-    .kp = 2000.0f,        // 比例系数
-    .ki = 300.0f,         // 积分系数  
+    .kp = 15.0f,        // 比例系数
+    .ki = 0.0f,         // 积分系数  
     .kd = 0.0f,           // 微分系数
     .kf = 0.0f,           // 前馈系数
     .angle_max = 0.0f,    // 不需要角度限幅
@@ -76,10 +76,10 @@ PwmInitConfig_s pwm_config = {
 
 FusionAhrsSettings settings = {
     .convention = FusionConventionNwu,  // 坐标系：NWU（北西上）
-    .gain = 0.1f,                      // 算法增益
+    .gain = 0.5f,                      // 算法增益
     .gyroscopeRange = 0.0f,            // 禁用量程检测重置（避免34.9rad/s满量程时误重置）
-    .accelerationRejection = 30,    // 加速度计拒绝阈值（度）
-    .recoveryTriggerPeriod = 5,        // 恢复触发周期
+    .accelerationRejection = 7.0f,    // 加速度计拒绝阈值（度）
+    .recoveryTriggerPeriod = 5000,        // 恢复触发周期
 };
 
 

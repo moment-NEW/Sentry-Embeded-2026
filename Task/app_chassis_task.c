@@ -332,6 +332,7 @@ void StartChassisTask(void const * argument)
 		}
 
 	Trigger = Motor_Dji_Register(&Trigger_Config);
+			Up_yaw = Motor_Dji_Register(&Up_config);
 		if (Trigger == NULL){
 				Log_Error("Trigger Register Failed!");
 		}
@@ -371,6 +372,7 @@ void StartChassisTask(void const * argument)
   
   for(;;)
   {
+		
 		#ifdef DEBUG
 		test_speed=Down_yaw->message.out_velocity;
     

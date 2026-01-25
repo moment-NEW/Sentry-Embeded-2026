@@ -1,2 +1,6 @@
 *.zip
 *.o
+
+# Doxygen
+html/
+latex/
