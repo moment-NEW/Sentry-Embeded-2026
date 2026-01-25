@@ -15,11 +15,14 @@
 #include "FreeRTOS.h"
 #include "bsp_dwt.h"  // 添加DWT头文件
 //extern Ist8310Instance_s *asdf;
+MadgwickAHRS *madgwick_ahrs;  
+FusionAhrs fusion_ahrs;
+FusionOffset fusion_offset;
 PidInstance_s *ins_pid;
 uint8_t test_data[5]={0,0,0,0,0};
 quaternions_struct_t Quater;//四元数
 Bmi088Instance_s *bmi088_test;
-
+float32_t Gyro_Offset[3] = {0};        // 陀螺仪零偏
   Bmi088InitConfig_s bmi088_config = {
     .spi_acc_config = {
         .spi_handle = &hspi1,                    // SPI句柄
@@ -71,7 +74,13 @@ PwmInitConfig_s pwm_config = {
     .id = NULL                 // 不需要ID
 };
 
-
+FusionAhrsSettings settings = {
+    .convention = FusionConventionNwu,  // 坐标系：NWU（北西上）
+    .gain = 0.1f,                      // 算法增益
+    .gyroscopeRange = 0.0f,            // 禁用量程检测重置（避免34.9rad/s满量程时误重置）
+    .accelerationRejection = 30.0f,    // 加速度计拒绝阈值（度）
+    .recoveryTriggerPeriod = 0,        // 恢复触发周期
+};
 
 
 
@@ -242,6 +251,7 @@ void isttask(void const * argument)
     // 姿态解算相关变量
     float32_t filtered_accel[3] = {0};      // 滤波后的加速度数据
     float32_t filtered_gyro[3] = {0};       // 滤波后的陀螺仪数据
+    
     float temperature = 0.0f;               // 温度数据
     float32_t current_quaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f}; // 当前四元数
     float32_t origin_quaternion[4] = {1.0f, 0.0f, 0.0f, 0.0f};  // 初始四元数
@@ -249,8 +259,9 @@ void isttask(void const * argument)
     
     
     // 初始化四元数（简化版，实际应用中需要更复杂的初始化）
+	madgwick_ahrs=pvPortMalloc(sizeof(MadgwickAHRS));
     Quater_Init(origin_quaternion, 1); // 使用默认初始化
-    // IMU_QuaternionEKF_Init(origin_quaternion, 10, 0.001, 10000000, 1, 0);//已经包含在以上初始化中
+  
     ins_initialized = 1;
     
     
@@ -298,12 +309,17 @@ void isttask(void const * argument)
                 }
             }
             
-            // 加速度数据：只做滑动平均
+            // 数据读取与预处理
             for (int i = 0; i < 3; i++) {
-//                MovingAvgFilter_Process(accel_moving_filters[i], , &filtered_accel[i]);
-                // 陀螺仪数据：不做滑动平均，直接用原始值
-								filtered_accel[i]=bmi088_test->accel[i];
-                filtered_gyro[i] = bmi088_test->gyro[i];
+				filtered_accel[i] = bmi088_test->accel[i];
+            }
+            
+            // 构造 Fusion 向量并进行动态偏置补偿
+            FusionVector raw_gyro = {bmi088_test->gyro[0], bmi088_test->gyro[1], bmi088_test->gyro[2]};
+            raw_gyro = FusionOffsetUpdate(&fusion_offset, raw_gyro); // 动态偏置学习与减除
+            
+            for (int i = 0; i < 3; i++) {
+                filtered_gyro[i] = raw_gyro.array[i];
             }
             
             // 姿态解算 - 使用EKF进行姿态融合更新
@@ -311,45 +327,59 @@ void isttask(void const * argument)
                 // 使用EKF进行高精度姿态解算（融合陀螺仪和加速度计数据）
                 float compensated_accel[3];
                 compensate_centrifugal_accel(filtered_gyro, filtered_accel, dt, compensated_accel);
-                // 将补偿后的加速度从机体坐标系变换到地球坐标系，作为观测向量
-                float accel_earth[3];
-                BodyFrameToEarthFrame(compensated_accel, accel_earth, current_quaternion);
-                // 使用变换后的加速度更新 EKF（观测向量现在在地球坐标系）
-                IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
-                                        accel_earth[0], accel_earth[1], accel_earth[2], dt);
+                
+                // 使用 Fusion AHRS 更新姿态（已修改库底层支持弧度）
+                FusionVector fusion_gyro = {filtered_gyro[0], filtered_gyro[1], filtered_gyro[2]};
+                FusionVector fusion_accel = {compensated_accel[0]/9.80665f, compensated_accel[1]/9.80665f, compensated_accel[2]/9.80665f};
+                
+                FusionAhrsUpdateNoMagnetometer(&fusion_ahrs, fusion_gyro, fusion_accel, dt);
+
+                // 从 Fusion AHRS 获取四元数
+                FusionQuaternion fq = FusionAhrsGetQuaternion(&fusion_ahrs);
+                current_quaternion[0] = fq.element.w;
+                current_quaternion[1] = fq.element.x;
+                current_quaternion[2] = fq.element.y;
+                current_quaternion[3] = fq.element.z;
+
+                // 获取弧度制欧拉角
+                FusionEuler fe = FusionQuaternionToEulerRad(fq);
+                Quater.roll = fe.angle.roll;
+                Quater.pitch = fe.angle.pitch;
+                Quater.yaw = fe.angle.yaw;
+
                 // // 使用补偿后的加速度更新 EKF
                 // IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
                 //                         compensated_accel[0], compensated_accel[1], compensated_accel[2], dt);
                 // IMU_QuaternionEKF_Update(filtered_gyro[0], filtered_gyro[1], filtered_gyro[2], 
                 //                         filtered_accel[0], filtered_accel[1], filtered_accel[2], dt);
                 
-                // 从EKF获取最优估计的四元数
-                current_quaternion[0] = QEKF_INS.q[0]; // w
-                current_quaternion[1] = QEKF_INS.q[1]; // x  
-                current_quaternion[2] = QEKF_INS.q[2]; // y
-                current_quaternion[3] = QEKF_INS.q[3]; // z
+                // // 从EKF获取最优估计的四元数
+                // current_quaternion[0] = QEKF_INS.q[0]; // w
+                // current_quaternion[1] = QEKF_INS.q[1]; // x  
+                // current_quaternion[2] = QEKF_INS.q[2]; // y
+                // current_quaternion[3] = QEKF_INS.q[3]; // z
+                // 从Madgwick获取最优估计的四元数
+                // current_quaternion[0] = ahrs->q0; // w
+                // current_quaternion[1] = ahrs->q1; // x
+                // current_quaternion[2] = ahrs->q2; // y
+                // current_quaternion[3] = ahrs->q3; // z
                 
                 // 更新全局四元数结构体
-                Quater.roll = QEKF_INS.Roll;     // 横滚角（度）
-                Quater.pitch = QEKF_INS.Pitch;   // 俯仰角（度）
+                // Quater.roll = QEKF_INS.Roll;     // 横滚角（度）
+                // Quater.pitch = QEKF_INS.Pitch;   // 俯仰角（度）
+                Quater.Gyro[0]=filtered_gyro[0];
+                Quater.Gyro[1]=filtered_gyro[1];
+                Quater.Gyro[2]=filtered_gyro[2];
                 // 从四元数直接计算弧度制 yaw
-                float yaw_rad = atan2f(2.0f * (QEKF_INS.q[0] * QEKF_INS.q[3] + QEKF_INS.q[1] * QEKF_INS.q[2]), 
-                                    2.0f * (QEKF_INS.q[0] * QEKF_INS.q[0] + QEKF_INS.q[1] * QEKF_INS.q[1]) - 1.0f);
-                Quater.yaw = yaw_rad;  // 赋值给结构体（弧度制）
+                //float yaw_rad = atan2f(2.0f * (QEKF_INS.q[0] * QEKF_INS.q[3] + QEKF_INS.q[1] * QEKF_INS.q[2]), 
+                 //                   2.0f * (QEKF_INS.q[0] * QEKF_INS.q[0] + QEKF_INS.q[1] * QEKF_INS.q[1]) - 1.0f);
+                //Quater.yaw = yaw_rad;  // 赋值给结构体（弧度制）
                 // Quater.yaw = QEKF_INS.Yaw;   
 								//-flag*(0.015*(bmi088_test->temperature-25)+1)*dt							// 偏航角（度）
                 Quater.Acc.A_x = filtered_accel[0];
                 Quater.Acc.A_y = filtered_accel[1];
                 Quater.Acc.A_z = filtered_accel[2];
-				///////////测试代码开始///////////////
-                test=Quater.yaw;//测试代码记得删除
-								if(lasttime<7){
-									lasttime+=dt;
-
-								}else if(Quater.yaw<0){
-									 flag=-1;
-            
-        }
+				///////////测试代码开始//////////////
 							////////////测试代码结束//////////////
                 // 可选：备用的四元数积分方法（用于对比或故障恢复）
                 // caculate_angle(filtered_gyro, current_quaternion, current_quaternion, dt);
@@ -360,25 +390,25 @@ void isttask(void const * argument)
         //IstRead_mem(asdf, test_data);
         
         // 调试输出 - 每1000次循环输出一次
-        static uint32_t debug_counter = 0;
-        if (++debug_counter >= 1000) {
-            // 检查BMI088校准状态
-            uint8_t cali_status = BMI088_GetCalibrationStatus(bmi088_test);
+        // static uint32_t debug_counter = 0;
+        // if (++debug_counter >= 1000) {
+        //     // 检查BMI088校准状态
+        //     uint8_t cali_status = BMI088_GetCalibrationStatus(bmi088_test);
             
-            // 检查EKF是否收敛
-            if (get_ekf_status()) {
-                // EKF已收敛
-                if (!cali_status) {
-                    // 校准未完成，可能是问题所在
-                }
-            } else {
-                // EKF未收敛
-                if (!cali_status) {
-                    // 校准未完成可能导致EKF无法收敛
-                }
-            }
-            debug_counter = 0;
-        }
+        //     // 检查EKF是否收敛
+        //     if (get_ekf_status()) {
+        //         // EKF已收敛
+        //         if (!cali_status) {
+        //             // 校准未完成，可能是问题所在
+        //         }
+        //     } else {
+        //         // EKF未收敛
+        //         if (!cali_status) {
+        //             // 校准未完成可能导致EKF无法收敛
+        //         }
+        //     }
+        //     debug_counter = 0;
+        // }
         
         osDelay(1); // 1ms延时，保持1000Hz更新频率
   }
@@ -410,10 +440,15 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
             g0[0] += bmi088_test->accel[0];
             g0[1] += bmi088_test->accel[1];
             g0[2] += bmi088_test->accel[2];
+            Gyro_Offset[0] += bmi088_test->gyro[0];
+            Gyro_Offset[1] += bmi088_test->gyro[1];
+            Gyro_Offset[2] += bmi088_test->gyro[2];
             osDelay(5);  
             
             BMI088_Read(bmi088_test);
-            
+            Gyro_Offset[0] += bmi088_test->gyro[0];
+            Gyro_Offset[1] += bmi088_test->gyro[1];
+            Gyro_Offset[2] += bmi088_test->gyro[2];
             g1[0] += bmi088_test->accel[0];
             g1[1] += bmi088_test->accel[1];
             g1[2] += bmi088_test->accel[2];
@@ -422,15 +457,35 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
 
         for (uint8_t i = 0; i < 3; ++i){
             g1[i] /= 50;  // 对应平均值除数
+
             g0[i] /= 50;
+            Gyro_Offset[i] /= 100; //陀螺仪零偏
         }
 
     if(calculate_quaternion_from_gravity(g0,g1,origin_quater)<0){//此处即完成四元数初始化
       //处理失败情况
       Error_Handler();
     };
-    //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 1000000,1,0);
+    //初始化Madgwick
+    //beta，滤波器增益
+    //sampleFreq，采样频率
+    madgwick_ahrs=pvPortMalloc(sizeof(MadgwickAHRS));
+    MadgwickAHRS_init(madgwick_ahrs, 0.1f, 1000.0f);
+
+    //初始化Fusion AHRS - 必须先Initialise再SetSettings，否则会被覆盖
+    FusionAhrsInitialise(&fusion_ahrs);
+    FusionAhrsSetSettings(&fusion_ahrs, &settings);
+    FusionOffsetInitialise(&fusion_offset, 1000); // 1000Hz 动态校准
+    fusion_offset.gyroscopeOffset.axis.x = Gyro_Offset[0];
+    fusion_offset.gyroscopeOffset.axis.y = Gyro_Offset[1];
+    fusion_offset.gyroscopeOffset.axis.z = Gyro_Offset[2];
+    
+    FusionQuaternion init_q = {
+        .element = {origin_quater[0], origin_quater[1], origin_quater[2], origin_quater[3]}
+    };
+    FusionAhrsSetQuaternion(&fusion_ahrs, init_q);
+
+   // IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 1000000,1,0);
     //初始化PID
   
     
@@ -468,8 +523,10 @@ uint8_t Quater_Init(float* origin_quater, uint8_t check) {
         origin_quater[2]=0;
         origin_quater[3]=0;//假设初始姿态就和坐标系对齐
      //初始化EKF
-    IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
-    
+    //IMU_QuaternionEKF_Init(origin_quater,10, 0.001, 10000000,1,0);
+     //MadgwickAHRS_init(madgwick_ahrs,0.1f, 0.001f);
+        FusionAhrsSetSettings(&fusion_ahrs, &settings);
+        FusionAhrsInitialise(&fusion_ahrs);
     }
     
     return 1;
@@ -619,7 +676,7 @@ uint8_t calculate_quaternion_from_gravity( float32_t* g0,  float32_t* g1, float3
     float32_t w_inv = 1.0f / (2.0f * quaternion[0]);//方便后面计算
         
     //计算四元数（根据w计算因子（好高大上的名字））
-        quaternion[1] = cross_product[0]*w_inv;  // x
+    quaternion[1] = cross_product[0]*w_inv;  // x
     quaternion[2] = cross_product[1]*w_inv;  // y
     quaternion[3] = cross_product[2]*w_inv;  // z
         
@@ -687,41 +744,3 @@ uint8_t caculate_angle(const float* gyro, const float* origin_quater, float* qua
     return 1;
 }
 
-/**
- * @brief 更新四元数函数
- * @details 用于在INS任务中循环更新四元数，解算姿态
- * @param origin_quater 四元数指针，用于输出更新后的四元数
- */
-void quaternion_update(float* origin_quater){
-    // 核心函数，kalman更新四元数
-    // 此函数现在集成到主循环中的EKF更新部分
-    // 直接从QEKF_INS结构体中获取EKF计算的四元数
-    if (QEKF_INS.Initialized && origin_quater != NULL) {
-        origin_quater[0] = QEKF_INS.q[0]; // w
-        origin_quater[1] = QEKF_INS.q[1]; // x
-        origin_quater[2] = QEKF_INS.q[2]; // y
-        origin_quater[3] = QEKF_INS.q[3]; // z
-    }
-}
-
-/**
- * @brief 获取EKF计算的欧拉角
- * @param roll 横滚角输出（弧度）
- * @param pitch 俯仰角输出（弧度）
- * @param yaw 偏航角输出（弧度）
- */
-void get_ekf_euler_angles(float* roll, float* pitch, float* yaw) {
-    if (QEKF_INS.Initialized && roll != NULL && pitch != NULL && yaw != NULL) {
-        *roll = QEKF_INS.Roll * M_PI / 180.0f;    // 转换为弧度
-        *pitch = QEKF_INS.Pitch * M_PI / 180.0f;  // 转换为弧度
-        *yaw = QEKF_INS.Yaw * M_PI / 180.0f;      // 转换为弧度
-    }
-}
-
-/**
- * @brief 获取EKF收敛状态
- * @return 1: EKF已收敛, 0: EKF未收敛
- */
-uint8_t get_ekf_status(void) {
-    return QEKF_INS.ConvergeFlag;
-}
