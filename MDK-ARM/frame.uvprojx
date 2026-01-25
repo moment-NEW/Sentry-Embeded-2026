@@ -959,6 +959,16 @@
               <FileType>5</FileType>
               <FilePath>..\Task\dev_board_communicate.h</FilePath>
             </File>
+            <File>
+              <FileName>dev_GimbalFollow.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Task\dev_GimbalFollow.c</FilePath>
+            </File>
+            <File>
+              <FileName>dev_GimbalFollow.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Task\dev_GimbalFollow.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

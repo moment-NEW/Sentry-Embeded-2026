@@ -14,6 +14,7 @@
 ChassisInstance_s *Chassis;
 DmMotorInstance_s *Down_yaw;
 DjiMotorInstance_s *Trigger;
+DjiMotorInstance_s *Up_yaw;
 Subscriber *CH_Subs;
 Dr16Instance_s* CH_Receive_s;
 MiniPC_Instance *MiniPC;
@@ -53,7 +54,7 @@ static ChassisInitConfig_s Chassis_config={
 		.wheel_radius= 0.0765f,
 	  .chassis_radius= 0.26176f,
 		},
-    .Gyroscope_Speed = 0.3f,  // 设置小陀螺旋转速度 (rad/s)
+    .Gyroscope_Speed = 0.1f,  // 设置小陀螺旋转速度 (rad/s)
 		.gimbal_follow_pid_config={
 		  .kp = 4.5f,
       .ki = 0.0f,
@@ -143,8 +144,42 @@ static ChassisInitConfig_s Chassis_config={
   }
 	};
 
+//上云台yaw电机配置(用于读取编码器角度)
+static DjiMotorInitConfig_s Up_config = {
+    .id = 5,                      // 电机ID(1~4)
+    .type = GM6020,               // 电机类型
+     .control_mode = DJI_POSITION,  // 电机控制模式
+    .topic_name = "up_yaw",
+    .can_config = {
+        .can_number = 2,
+        .topic_name = "up_yaw",              // can句柄
+        .tx_id = 0x1FF,                     // 发送id 
+        .rx_id = 0x205,                     // 接收id
+        .can_module_callback=NULL,
+    },
+    .reduction_ratio = 19.0f,              // 减速比
+
+    .angle_pid_config = {
+        .kp = 0.0f,                        // 位置环比例系数
+        .ki = 0.0f,                        // 位置环积分系数
+        .kd = 0.0f,                        // 位置环微分系数
+        .kf = 0.0f,                        // 前馈系数
+        .angle_max =2*PI,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 100.0f,                   // 积分限幅
+        .out_max = 400.0f,                 // 输出限幅(速度环输入)
+    }, 
+    .velocity_pid_config = {
+        .kp = 0.0f,                       // 速度环比例系数
+        .ki = 0.0f,                        // 速度环积分系数
+        .kd = 0.0f,                        // 速度环微分系数
+        .kf = 0.0f,                        // 前馈系数
+        .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
+        .i_max = 1000.0f,                  // 积分限幅
+        .out_max = 2000.0f,                // 输出限幅(电流输出)
+    }
+};
 	
-	//底盘大yaw电机配置
+//底盘大yaw电机配置
 	static DmMotorInitConfig_s Down_config = {
    //.control_mode = DM_VELOCITY,     
 	 .control_mode = DM_POSITION,
@@ -166,7 +201,7 @@ static ChassisInitConfig_s Chassis_config={
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 0.0f,//8.0f,
+        .kp = 1.0f,//8.0f,
         .ki = 0.0f,
         .kd = 0.0f,
         .kf = 0.0f,
@@ -255,18 +290,18 @@ board_config_t board_config = {
     .message_type = DOWN2UP_MESSAGE_TYPE, // down2up_message_t
 };
 
-static void Chassis_Disable(ChassisInstance_s chassis){
+static void Chassis_Disable(ChassisInstance_s *chassis){
 	for(uint8_t i=0;i<4;i++){
-	chassis.chassis_motor[i]->output=0.0f;
-	Pid_Disable(chassis.chassis_motor[i]->velocity_pid);
-	Pid_Disable(chassis.chassis_motor[i]->angle_pid);
+	chassis->chassis_motor[i]->output=0.0f;
+	Pid_Disable(chassis->chassis_motor[i]->velocity_pid);
+	Pid_Disable(chassis->chassis_motor[i]->angle_pid);
 	}
 	
 }
-static void Chassis_Enable(ChassisInstance_s chassis){
+static void Chassis_Enable(ChassisInstance_s *chassis){
 	for(uint8_t i=0;i<4;i++){
-	Pid_Enable(chassis.chassis_motor[i]->velocity_pid);
-	Pid_Enable(chassis.chassis_motor[i]->angle_pid);
+	Pid_Enable(chassis->chassis_motor[i]->velocity_pid);
+	Pid_Enable(chassis->chassis_motor[i]->angle_pid);
 	}
 	
 }
@@ -304,7 +339,11 @@ void StartChassisTask(void const * argument)
     if (board_instance == NULL) {
         Log_Error("Board Register Failed!");
     }
-		
+
+		 while (Quater.ins_ready!=1)
+    {
+        osDelay(10);
+    }
 		
 		//循环使能
 		while(Down_yaw->motor_state!=DM_ENABLE){
@@ -321,6 +360,7 @@ void StartChassisTask(void const * argument)
      //施工中，可能需要修改板间通信，我现在写的太烂了拓展性很差                   
     //Minipc_ConfigExpAimTx(MiniPC_SelfAim,)
     
+   
     
     uint32_t dwt2_cnt_last = 0;
 		float dt2 = 0.001f;  // 初始dt
@@ -468,7 +508,7 @@ void StartChassisTask(void const * argument)
         
     case TRANS_MODE:
         /* code */
-				Chassis_Enable(*Chassis);
+				Chassis_Enable(Chassis);
 				Motor_Dm_Cmd(Down_yaw,DM_CMD_MOTOR_ENABLE);
 				Motor_Dm_Transmit(Down_yaw);
 				Pid_Enable(Trigger->velocity_pid);
@@ -484,7 +524,7 @@ void StartChassisTask(void const * argument)
 				Motor_Dm_Transmit(Down_yaw);
 				Pid_Disable(Trigger->velocity_pid);
 				Chassis_Change_Mode(Chassis,CHASSIS_NORMAL);
-        Chassis_Disable(*Chassis);
+        Chassis_Disable(Chassis);
 				
         Chassis->Chassis_speed.Vx=0.0f;
         Chassis->Chassis_speed.Vy=0.0f;
@@ -500,7 +540,7 @@ void StartChassisTask(void const * argument)
 				Motor_Dm_Transmit(Down_yaw);
 		
 				Chassis_Change_Mode(Chassis,CHASSIS_NORMAL);
-        Chassis_Disable(*Chassis);
+        Chassis_Disable(Chassis);
 				
         Chassis->Chassis_speed.Vx=0.0f;
         Chassis->Chassis_speed.Vy=0.0f;

@@ -51,6 +51,7 @@ typedef struct
     float32_t yaw;     // 偏航角（度）
     acceleration Acc;  // 保留加速度数据
     float Gyro[3]; // 三轴陀螺仪数据
+    uint8_t ins_ready; // INS数据就绪标志
 }quaternions_struct_t;
 
 

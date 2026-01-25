@@ -78,8 +78,8 @@ FusionAhrsSettings settings = {
     .convention = FusionConventionNwu,  // 坐标系：NWU（北西上）
     .gain = 0.1f,                      // 算法增益
     .gyroscopeRange = 0.0f,            // 禁用量程检测重置（避免34.9rad/s满量程时误重置）
-    .accelerationRejection = 30.0f,    // 加速度计拒绝阈值（度）
-    .recoveryTriggerPeriod = 0,        // 恢复触发周期
+    .accelerationRejection = 30,    // 加速度计拒绝阈值（度）
+    .recoveryTriggerPeriod = 5,        // 恢复触发周期
 };
 
 
@@ -227,6 +227,21 @@ void isttask(void const * argument)
     PidInstance_s *temp_pid = Pid_Register(&temp_pid_config);
     PwmInstance_s *heater_pwm = Pwm_Register(&pwm_config);
     
+    // 【新增】在上电初期强制等待温度达到 40 度
+    // 只有在温度稳定后，陀螺仪零偏才不会剧烈漂移，AHRS 的高增益初始化才有意义
+    float init_temp = 0.0f;
+    while (init_temp < 39.5f) {
+        if (BMI088_ReadTemperature(bmi088_test->spi_acc, &init_temp)) {
+            // 在等待过程中持续运行 PID 控温逻辑
+            float pid_output = Pid_Calculate(temp_pid, 40.0f, init_temp);
+            float duty_ratio = pid_output / 20.0f;
+            if (duty_ratio < 0.0f) duty_ratio = 0.0f;
+            if (duty_ratio > 1.0f) duty_ratio = 1.0f;
+            Pwm_SetDutyRatio(heater_pwm, duty_ratio);
+        }
+        osDelay(2); // 2ms 周期
+    }
+
     // 实例化滤波器配置
     FilterInitConfig_t filter_config = {
         .filter_size = 5,              // 5点滑动平均
@@ -313,7 +328,10 @@ void isttask(void const * argument)
             for (int i = 0; i < 3; i++) {
 				filtered_accel[i] = bmi088_test->accel[i];
             }
-            
+        //    FusionAhrsFlags flags = FusionAhrsGetFlags(&fusion_ahrs);
+        //     FusionAhrsInternalStates states = FusionAhrsGetInternalStates(&fusion_ahrs);
+
+            Quater.ins_ready = (!fusion_ahrs.initialising); // 误差小于1度
             // 构造 Fusion 向量并进行动态偏置补偿
             FusionVector raw_gyro = {bmi088_test->gyro[0], bmi088_test->gyro[1], bmi088_test->gyro[2]};
             raw_gyro = FusionOffsetUpdate(&fusion_offset, raw_gyro); // 动态偏置学习与减除

@@ -17,7 +17,7 @@ MadgwickParam madgwickParam;
 /**
  * @brief Gain value used during initialization phase
  */
-#define INITIAL_GAIN (10.0f)
+#define INITIAL_GAIN (2.0f)
 
 /**
  * @brief Duration of initialization phase (seconds)
