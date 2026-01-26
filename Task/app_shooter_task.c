@@ -15,9 +15,6 @@
 //实例声明
 DjiMotorInstance_s *Left_Wheel;
 DjiMotorInstance_s *Right_Wheel;
-
-
-DjiMotorInstance_s *Trigger;
 extern uint8_t gimbal_ready_flag;
 extern board_instance_t *board_instance;
 #define DEBUG
@@ -119,39 +116,7 @@ static  DjiMotorInitConfig_s Right_Config = {
 
 
 
-static  DjiMotorInitConfig_s Trigger_Config = {
-    .id = 3,                      // 电机ID(1~4)
-    .type = M2006,               // 电机类型
-     .control_mode = DJI_VELOCITY,  // 电机控制模式
-    //.control_mode = DJI_POSITION,
-		.topic_name = "Trigger",
-    .can_config = {
-        .can_number = 2,
-				.topic_name = "Trigger",              // can句柄
-        .tx_id = 0x200,                     // 发送id 
-        .rx_id = 0x203,                     // 接收id
-    },
-    .reduction_ratio = (36.0/19.0)*47.0,              // 减速比
 
-    .angle_pid_config = {
-        .kp = 35.0f,                        // 位置环比例系数
-        .ki = 0.0f,                        // 位置环积分系数
-        .kd = 0.0f,                        // 位置环微分系数
-        .kf = 0.0f,                        // 前馈系数
-        .angle_max =2*PI,                 // 角度最大值(限幅用，为0则不限幅)
-        .i_max = 100.0f,                   // 积分限幅
-        .out_max = 4000.0f,                 // 输出限幅(速度环输入)
-    },
-    .velocity_pid_config = {
-        .kp = 45.0f,                       // 速度环比例系数
-        .ki = 0.05f,                        // 速度环积分系数
-        .kd = 0.0f,                        // 速度环微分系数
-        .kf = 0.0f,                        // 前馈系数
-        .angle_max = 0,                 // 角度最大值(限幅用，为0则不限幅)
-        .i_max = 1000.0f,                  // 积分限幅
-        .out_max = 16000.0f,                // 输出限幅(电流输出)
-    }
-};
 
 
 
@@ -165,7 +130,7 @@ void StartShooterTask(void const * argument)
 {
 
   /* USER CODE BEGIN StartShooterTask */
-	Trigger=Motor_Dji_Register(&Trigger_Config);
+	
 	Left_Wheel=Motor_Dji_Register(&Left_Config);
   Right_Wheel=Motor_Dji_Register(&Right_Config);
   Shooter_State=SHOOTER_STOP;
@@ -182,8 +147,7 @@ void StartShooterTask(void const * argument)
    
 
 
-  //拨弹盘初始化
-	pos_target_tr=Trigger->message.out_position;//防止出问题
+ 
   // 初始化时按固定方向旋转到原点
 //while (fabsf(Trigger->message.out_position - FIRE_ORIGIN) > 0.03f) {
 //    pos_target_tr -= 0.001f;
@@ -201,176 +165,132 @@ void StartShooterTask(void const * argument)
   /* Infinite loop */
   for(;;)
   { 
-//     // CtrlMode=board_instance->received_control_mode;
-//     // switch (CtrlMode)
-//     // {
-//     // case SHOOT_MODE:
-//     //   if(board_instance->received_shoot_bool==1){
-//     //   Shooter_State=SHOOTER_START;
-//     //   }
-//     //   break;
-//     // case DISABLE_MODE:
-//     //   Shooter_State=SHOOTER_STOP;
-//     //   break;
     
-      
-    
-//     // default:
-//     //   Shooter_State=SHOOTER_STOP;
-//     //   break;
-//     // }
 
 
-//     Shooter_State_last=Shooter_State;
+    Shooter_State_last=Shooter_State;
 
-//     switch(Shooter_State){
-//       case SHOOTER_READY:
-// 				if(Shooter_State_last==SHOOTER_STOP){
-//         last_time=0;
-//         Shooter_State=SHOOTER_TRANS;
-//         break;
-//       }
-// 				Pid_Enable(Left_Wheel->velocity_pid);
-//         Pid_Enable(Right_Wheel->velocity_pid);
+    switch(Shooter_State){
+      case SHOOTER_READY:
+				if(Shooter_State_last==SHOOTER_STOP){
+        last_time=0;
+        Shooter_State=SHOOTER_TRANS;
+        break;
+      }
+				Pid_Enable(Left_Wheel->velocity_pid);
+        Pid_Enable(Right_Wheel->velocity_pid);
 				
-// 				target_wheel_speed=SHOOTER_WHEEL_SPEED;
-// 				pos_target_tr=Trigger->message.out_position;
-// 				Motor_Dji_Control(Trigger,pos_target_tr);
-// 				Motor_Dji_Transmit(Trigger);
+				target_wheel_speed=SHOOTER_WHEEL_SPEED;
 				
-// 			break;
-//       case SHOOTER_STOP:
-//         //清空PID
-//         //target_wheel_speed=0.0f;
+		
 				
-//         Pid_Disable(Left_Wheel->velocity_pid);
-//         Pid_Disable(Right_Wheel->velocity_pid);
-//         Pid_Disable(Trigger->angle_pid);
-//        break;
-//       case SHOOTER_START:
-      
-//       if(Shooter_State_last==SHOOTER_STOP){
-//         last_time=0;
-//         Shooter_State=SHOOTER_TRANS;
-//         break;
-//       }
-//       //检查力矩，如果力矩过大则视为开火状态，否则拨弹
-
-//       if(Left_Wheel->message.torque_current>FIRING_TORQUE||Right_Wheel->message.torque_current>FIRING_TORQUE){
-//         Shooter_State=SHOOTER_FIRING;
-//         continue;
-//       }
-//       heat+=10;
-//       pos_target_tr+=SHOOTER_RANGE;//转一个子弹的角度喵
-//       pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
-//       pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
-//       Motor_Dji_Control(Trigger,pos_target_tr);
-//       target_wheel_speed=SHOOTER_WHEEL_SPEED;
-//       break;
-//       case SHOOTER_FIRING:
-//       //直到检测到电流小于某个值的时候再跳转回不稳定的初始状态
-//       if(Left_Wheel->message.torque_current<FIRING_TORQUE||Right_Wheel->message.torque_current<FIRING_TORQUE){
-//         Shooter_State=SHOOTER_START;
-//         continue;
-
-//       }
-      
-//       target_wheel_speed=SHOOTER_WHEEL_SPEED;
-      
-      
-//       case SHOOTER_STUCK:
-//       if(Trigger->message.torque_current<MAX_TORQUE){
-//         Shooter_State=SHOOTER_FIRING;
+			break;
+      case SHOOTER_STOP:
+        //清空PID
+        //target_wheel_speed=0.0f;
+				
+        Pid_Disable(Left_Wheel->velocity_pid);
+        Pid_Disable(Right_Wheel->velocity_pid);
         
-//       }
-
-
-//       last_time++;
-//       //回转一段距离避免卡弹
-//       if(last_time>500){
-//         if(last_time>1000){
-//           Shooter_State=SHOOTER_STOP;//急停,可能后面需要做个时不时查看是否有问题的机制。
-//         }
-//         pos_target_tr-=SHOOTER_RANGE*2;
-//         pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
-//         pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
-//         Motor_Dji_Control(Trigger,pos_target_tr);
-
-//       }
-//         break;
-//       case SHOOTER_TRANS:
-				
-//         Pid_Enable(Left_Wheel->velocity_pid);
-//         Pid_Enable(Right_Wheel->velocity_pid);
-//         Pid_Enable(Trigger->angle_pid);
-//         Pid_Enable(Trigger->velocity_pid);
-//         break;
-//       case SHOOTER_AUTO:
-//       //连射模式
-//       if(Shooter_State_last==SHOOTER_STOP){
-//         last_time=0;
-//         Shooter_State=SHOOTER_TRANS;
-//         break;
-//       }
-// 			if(Trigger->message.torque_current>MAX_TORQUE){
-// 				last_time++;
-// 			}
-//       pos_target_tr+=SHOOTER_RANGE;
-//       pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
-//       pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
-//       Motor_Dji_Control(Trigger,pos_target_tr);
-//       target_wheel_speed=SHOOTER_WHEEL_SPEED;
-//         break;
-//       case SHOOTER_TEST:
-//         //测试模式，直接控制任何一个电机
-// 			Pid_Enable(Trigger->angle_pid);
-// 			Pid_Enable(Trigger->velocity_pid);
-// 		//	Pid_Enable(Left_Wheel->velocity_pid);
-//       //  Pid_Enable(Right_Wheel->velocity_pid);
-// 				if(test_flag==1){
-// //					pos_target_tr+=0.001;
-// //					pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
-// //					pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
-// 					pos_target_tr=target_speed_tr;	
-// 				}
-// 				target_wheel_speed=-5500.0f;
-//       //  Motor_Dji_Control(Trigger,pos_target_tr);
-// 			//	Motor_Dji_Transmit(Trigger);
-//         break;
-// 			default:
-// 				break;
-//     }
-    
-// 		test_speed_tr=Trigger->message.out_velocity;
-// 		//target_speed_tr=Trigger->angle_pid->output;
-//     test_position_tr=Trigger->message.out_position;
-// 		test_output_tr=Trigger->message.torque_current;
-// 		test_speed_left=Left_Wheel->message.out_velocity;
-// 		float test_left;
-
-//     LowpassFilter_Process(right_wheel_vel_filter, Right_Wheel->message.out_velocity, &filtered_right_vel);
-    
-    
-		
-// 		//Motor_Dji_Transmit(Trigger);
-// //		if(board_instance->received_shoot_bool==1){
-// //      target_wheel_speed=SHOOTER_WHEEL_SPEED;}else{
-// //        target_wheel_speed=0.0f;
-
-// //      }
-// 		Motor_Dji_Control(Right_Wheel,target_wheel_speed);
-		
-
-
-// 		//Motor_Dji_Control(Left_Wheel,filtered_right_vel);
-// 		Motor_Dji_Control(Left_Wheel,-filtered_right_vel);
-// 		Motor_Dji_Transmit(Right_Wheel);  Pid_Disable(Trigger->velocity_pid);
-
-//         break;
-//       case SHOOTER_2HOT:
-//         //过热保护
-//         //未完待续
+       break;
+      case SHOOTER_STARTFIRE:
       
+        if(Shooter_State_last==SHOOTER_STOP){
+          last_time=0;
+          Shooter_State=SHOOTER_TRANS;
+          break;
+        } 
+        target_wheel_speed=SHOOTER_WHEEL_SPEED;
+        //检查力矩，如果力矩依然保持很大,那么证明还在发弹，累加lasttime
+        if(Right_Wheel->message.torque_current>MAX_TORQUE||Right_Wheel->message.torque_current<-MAX_TORQUE){
+          last_time++;
+        }else{
+          Shooter_State=SHOOTER_READY;
+          last_time=0;
+        }
+        //这里目标速度是负数所以是大于目标值加一个范围
+        if(Right_Wheel->message.out_velocity>SHOOTER_WHEEL_SPEED+100.0f){
+          //速度未达标，视为开火状态
+          if(last_time>5){
+            Shooter_State=SHOOTER_FIRING;
+            break;
+          }  
+      }
+      
+      
+     
+      break;
+      case SHOOTER_FIRING:
+      //这里可能有个问题，实际上力矩正负应该是固定的，这个判断逻辑有问题或者压根没用
+      //直到检测到电流小于某个值的时候再跳转回不稳定的初始状态
+      if(Right_Wheel->message.torque_current<FIRING_TORQUE||Right_Wheel->message.torque_current>-FIRING_TORQUE){
+        Shooter_State=SHOOTER_STARTFIRE;
+        continue;
+      }
+      
+      target_wheel_speed=SHOOTER_WHEEL_SPEED;
+      break;
+      
+      case SHOOTER_STUCK:
+        //逻辑已经转嫁到下板
+
+        break;
+      case SHOOTER_TRANS:
+				
+        Pid_Enable(Left_Wheel->velocity_pid);
+        Pid_Enable(Right_Wheel->velocity_pid);
+        
+        break;
+      case SHOOTER_AUTO:
+      //连射模式
+      if(Shooter_State_last==SHOOTER_STOP){
+        last_time=0;
+        Shooter_State=SHOOTER_TRANS;
+        break;
+      }
+			
+      target_wheel_speed=SHOOTER_WHEEL_SPEED;
+        break;
+      case SHOOTER_TEST:
+        //测试模式，直接控制任何一个电机
+			
+		//	Pid_Enable(Left_Wheel->velocity_pid);
+      //  Pid_Enable(Right_Wheel->velocity_pid);
+				if(test_flag==1){
+//					pos_target_tr+=0.001;
+//					pos_target_tr=pos_target_tr>HALF_RANGE?pos_target_tr-2*HALF_RANGE:pos_target_tr;
+//					pos_target_tr=pos_target_tr<-HALF_RANGE?pos_target_tr+2*HALF_RANGE:pos_target_tr;
+					pos_target_tr=target_speed_tr;	
+				}
+				target_wheel_speed=-5500.0f;
+      //  Motor_Dji_Control(Trigger,pos_target_tr);
+			//	Motor_Dji_Transmit(Trigger);
+        break;
+			default:
+      Pid_Disable(Left_Wheel->velocity_pid);
+      Pid_Disable(Right_Wheel->velocity_pid);
+				break;
+    }
+    
+		
+		
+		test_speed_left=Left_Wheel->message.out_velocity;
+		float test_left;
+
+    LowpassFilter_Process(right_wheel_vel_filter, Right_Wheel->message.out_velocity, &filtered_right_vel);
+    
+    
+		
+
+		Motor_Dji_Control(Right_Wheel,target_wheel_speed);
+		
+
+
+		//Motor_Dji_Control(Left_Wheel,filtered_right_vel);
+		Motor_Dji_Control(Left_Wheel,-filtered_right_vel);
+		Motor_Dji_Transmit(Right_Wheel);  
+       
+     
     osDelay(1);
 
   }

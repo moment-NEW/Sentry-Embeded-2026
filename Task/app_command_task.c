@@ -3,7 +3,7 @@
  * @author CGH
  * @brief 指令处理任务
  * @version V1.0.0
- * @note 打算改成直接使用遥控器值，以免处理的延迟导致模式切换不对
+ * @note 有待进一步优化
  */
 #include "app_command_task.h"
 
