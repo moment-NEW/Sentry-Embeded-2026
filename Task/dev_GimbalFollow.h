@@ -27,38 +27,27 @@ typedef struct
 {
     PidInitConfig_s gimbal_follow_pid_config;
 
-    float up_origin;//上云台零点
-    float angle_limit;
-    float angle_range;//默认-PI到PI
-    float *up_angle_ptr;//上云台角度指针
-    float *down_angle_ptr;//下云台角度指针
-    float dead_zone;//死区，避免大鸟转转转
+    float up_origin;        // 上云台零点
+    float angle_range;      // 角度范围, e.g., 2*PI, 用于过零保护
+    float *up_angle_ptr;    // 上云台角度指针 (反馈)
 } gimbal_follow_config_s;
 
 /**
- * 
- * 
- * 
- * 
+ * @brief 云台跟随实例结构体
  */
 typedef struct 
 {
-
-    float up_origin;//上云台零点
-    float *up_angle_ptr;//上云台角度指针
-    float *down_angle_ptr;//下云台角度指针
-    float angle_range;//默认-PI到PI
-    float dead_zone;//死区，避免大鸟转转转
+    float up_origin;        // 上云台零点
+    float *up_angle_ptr;    // 上云台角度指针
+    float angle_range;      // 角度范围
     
-    PidInstance_s *gimbal_follow_pid;//跟随pid
-    float output;//输出值
+    PidInstance_s *gimbal_follow_pid; // 跟随 PID
+    float output;           // 输出值
 } gimbal_follow_instance_s;
 
-
-
-
-
-
+gimbal_follow_instance_s* GimbalFollow_Register(gimbal_follow_config_s* config);
+void GimbalFollow_Unregister(gimbal_follow_instance_s* instance);
+bool Follow_Calculate(gimbal_follow_instance_s* instance);
 
 
 

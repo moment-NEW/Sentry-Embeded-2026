@@ -20,6 +20,7 @@ Dr16Instance_s* CH_Receive_s;
 MiniPC_Instance *MiniPC;
 MiniPC_Instance *MiniPC_SelfAim;
 board_instance_t *board_instance;
+gimbal_follow_instance_s* GimbalFollow_Instance;
 //extern QEKF_INS_t QEKF_INS; 
 uint8_t enemy_color =1;//暂时的逻辑
 uint8_t shoot_bool=0;
@@ -290,6 +291,19 @@ board_config_t board_config = {
     .message_type = DOWN2UP_MESSAGE_TYPE, // down2up_message_t
 };
 
+gimbal_follow_config_s GimbalFollow_config = {
+    .up_origin = 2.00935459f, // 云台偏航零点角度，需与Chassis_config.gimbal_yaw_zero保持一致
+    .up_angle_ptr = NULL, // 指向上云台yaw电机的角度反馈,因为不能赋值变量初始化，所以在任务开始时赋值
+    .angle_range = 2.0f * PI, // 角度范围，单位弧度，360度为2*PI
+    .gimbal_follow_pid_config = {
+        .kp = 4.5f,
+        .ki = 0.0f,
+        .kd = 0.0f,
+        .dead_zone = 0.15f,
+        .i_max = 0.0f,
+        .out_max = 2 * 3.141593f,
+    }
+};
 static void Chassis_Disable(ChassisInstance_s *chassis){
 	for(uint8_t i=0;i<4;i++){
 	chassis->chassis_motor[i]->output=0.0f;
@@ -340,6 +354,9 @@ void StartChassisTask(void const * argument)
     if (board_instance == NULL) {
         Log_Error("Board Register Failed!");
     }
+  GimbalFollow_config.up_angle_ptr = &Up_yaw->message.out_position;
+  GimbalFollow_Instance = GimbalFollow_Register(&GimbalFollow_config);
+  
 
 		 while (Quater.ins_ready!=1)
     {

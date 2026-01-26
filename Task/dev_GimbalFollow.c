@@ -17,6 +17,21 @@
 
 
 #include "dev_GimbalFollow.h"
+#include "robot_config.h"
+
+
+/**
+ * @brief 云台跟随注销
+ */
+void GimbalFollow_Unregister(gimbal_follow_instance_s* instance)
+{
+    if (instance == NULL) return;
+    if (instance->gimbal_follow_pid != NULL)
+    {
+        user_free(instance->gimbal_follow_pid);
+    }
+    user_free(instance);
+}
 
 
 /**
@@ -25,69 +40,55 @@
  */
 gimbal_follow_instance_s* GimbalFollow_Register(gimbal_follow_config_s* config)
 {   
-    if (config == NULL) return NULL;
+    if (config == NULL || config->up_angle_ptr == NULL) return NULL;
 
-    gimbal_follow_instance_s* instance = (gimbal_follow_instance_s*)pvPortMalloc(sizeof(gimbal_follow_instance_s));
+    gimbal_follow_instance_s* instance = (gimbal_follow_instance_s*)user_malloc(sizeof(gimbal_follow_instance_s));
     if (instance == NULL) return NULL;
     memset(instance, 0, sizeof(gimbal_follow_instance_s));
     
     instance->up_origin = config->up_origin;
     instance->up_angle_ptr = config->up_angle_ptr;
-    instance->down_angle_ptr = config->down_angle_ptr;
+    instance->angle_range = (config->angle_range != 0.0f) ? config->angle_range : 2.0f * PI; // 默认 2*PI 范围
+
+    // 将角度范围同步到 PID 配置中，以便使用库自带的过零保护
+    config->gimbal_follow_pid_config.angle_max = instance->angle_range;
     
-   
     instance->gimbal_follow_pid = Pid_Register(&config->gimbal_follow_pid_config);
     if (instance->gimbal_follow_pid == NULL)
     {
         goto __followfail;
     }
     
-    // 角度范围设置
-    instance->angle_range = (config->angle_range != 0.0f) ? config->angle_range : 2.0f * PI;
-    // 死区设置
-    instance->dead_zone = config->dead_zone; 
-
     instance->output = 0.0f;
     return instance;
 
 __followfail:
-    if (instance) vPortFree(instance);
+    if (instance) user_free(instance);//算是一个标准化小尝试，实际上有点多余。
     return NULL;
 }
 
 
 /**
  * @brief 云台跟随计算函数
- * @details 增加了回绕处理（最短路径控制）和死区控制
+ * @details 修复了 PID 库语义。Target 设为 0 (理想偏移)，Measure 设为当前偏移量。
+ * 过零保护由 PID 库内部处理，无需外部 While 循环。
  */
 bool Follow_Calculate(gimbal_follow_instance_s* instance)
 {
-    if (instance == NULL || instance->up_angle_ptr == NULL)
+    if (instance == NULL || instance->up_angle_ptr == NULL || instance->gimbal_follow_pid == NULL)
     {
         return false;
     }
 
-    // up_yaw-target=error=虚拟出的下云台位置-0
-    float error = *(instance->up_angle_ptr) - instance->up_origin;
+    // 计算当前上云台相对于零点的偏移量
+    float current_offset = *(instance->up_angle_ptr) - instance->up_origin;
     
-    
-    // 归一化
-    float half_range = instance->angle_range / 2.0f;
-    while (error > half_range)  error -= instance->angle_range;
-    while (error < -half_range) error += instance->angle_range;
-
-    
-    if (fabsf(error) < instance->dead_zone)
-    {
-        error = 0.0f;
-    }
-
-    
-    //这里将 target 设为 error，measure 设为 0。
-    //这样 PID 库内部计算 (target - measure) 刚好等于我们处理后的归一化 error。
-    Pid_Calculate(instance->gimbal_follow_pid, error, 0.0f);
+    // 理想状态是偏移量为 0，所以 target = 0, measure = current_offset
+    // PID 库内部会计算 (target - measure) 即 (0 - current_offset)
+    // 注意：如果方向相反，请通过调整 PID 参数中的 Kp 符号来实现，而不是在此处硬编码取反
+    Pid_Calculate(instance->gimbal_follow_pid, 0.0f, current_offset);
     
     instance->output = instance->gimbal_follow_pid->output;
-    //最后角度误差再交由速度环处理
+    
     return true;
 }

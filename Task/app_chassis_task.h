@@ -20,6 +20,8 @@
 #include "bsp_dwt.h"
 
 #include "dev_board_communicate.h"
+#include "dev_GimbalFollow.h"
+
 
 #include "app_command_task.h"
 #include "app_ins_task.h"

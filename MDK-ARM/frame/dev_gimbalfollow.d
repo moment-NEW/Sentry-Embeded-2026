@@ -14,4 +14,5 @@ frame/dev_gimbalfollow.o: ..\Task\dev_GimbalFollow.c \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\semphr.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\event_groups.h \
-  ..\Sentry_libs\Algorithm\Pid\alg_pid.h
+  ..\Sentry_libs\Algorithm\Pid\alg_pid.h \
+  ..\..\Sentry-Embeded-2026\robot_config.h
