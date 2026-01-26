@@ -1,3 +1,4 @@
 *.zip
 *.o
 *.txt
+MDK-ARM/JLinkLog.txt
