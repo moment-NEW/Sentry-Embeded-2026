@@ -6,7 +6,7 @@
  */
 #include "dev_motor_dji.h"
 #include <math.h>
-#include "FreeRTOS.h"
+#include "robot_config.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
@@ -41,7 +41,12 @@ static float Motor_Dji_Protect(float output, float max) {
  * @note 大疆电机可以一帧控制四个电机，所以需要对同一控制帧的电机进行分组
  * @date 2025-07-04
  */
+#ifdef USER_CAN_STANDARD
 static bool Motor_Dji_Grouping(uint32_t tx_id, CAN_HandleTypeDef *can_handle, uint8_t tx_buff[8]) {
+#endif
+#ifdef USER_CAN_FD
+    static bool Motor_Dji_Grouping(uint32_t tx_id, FDCAN_HandleTypeDef *can_handle, uint8_t tx_buff[8]) {
+#endif
     for(int i = 0; i < idx; i++) {
         if(motor_dji_instances[i]->can_instance->can_handle == can_handle && motor_dji_instances[i]->can_instance->tx_id == tx_id) {
            if(motor_dji_instances[i]->id < 5){   
@@ -62,10 +67,12 @@ static bool Motor_Dji_Grouping(uint32_t tx_id, CAN_HandleTypeDef *can_handle, ui
  * @date 2025-07-04
  */
 static void Motor_Dji_Decode(CanInstance_s *can_instance){
-    if(can_instance == NULL){
+     if(can_instance == NULL){
         return;
     }
     DjiMotorInstance_s *motor = can_instance->parent_ptr; // 获取电机实例
+    
+    // 1. 更新转子位置记录
     if(motor->message.rotor_position != 0){
         motor->message.rotor_last_position = motor->message.rotor_position;
     }
@@ -74,36 +81,38 @@ static void Motor_Dji_Decode(CanInstance_s *can_instance){
     motor->message.torque_current = (int16_t)(can_instance->rx_buff[4] << 8 | can_instance->rx_buff[5]);
     motor->message.temperature = can_instance->rx_buff[6];
 
+    // 计算输出轴速度
     motor->message.out_velocity = motor->message.rotor_velocity / motor->reduction_ratio;
 
-
-
-    // 把转子角度转化为输出轴角度
-    int res1=0, res2=0;
-    if(motor->message.rotor_position < motor->message.rotor_last_position){
-        res1 = motor->message.rotor_position + DJI_ECD_ANGLE_MAX - motor->message.rotor_last_position;    //正转，delta=+
-        res2 = motor->message.rotor_position - motor->message.rotor_last_position;                        //反转    delta=-
-    }
-    else{
-        res1 = motor->message.rotor_position - motor->message.rotor_last_position;                        //正转    delta +
-        res2 = motor->message.rotor_position - DJI_ECD_ANGLE_MAX - motor->message.rotor_last_position ;   //反转    delta -
-    }
-    //不管正反转，肯定是转的角度小的那个是真的
-    if(abs(res1)<abs(res2))
-        motor->message.total_angle += res1;
-    else
-        motor->message.total_angle += res2;
-    if(abs(motor->message.total_angle) > FLOAT_MAX){
-        motor->message.total_angle = 0;
+    // 2. 处理过零点，计算转子转过的差值 (delta)
+    int32_t delta = 0; // 使用int32防止计算过程溢出
+    int32_t diff = motor->message.rotor_position - motor->message.rotor_last_position;
+    
+    // 如果差值超过半圈(4096)，说明发生了过零点
+    if (diff > 4096) {
+        delta = diff - 8192;
+    } else if (diff < -4096) {
+        delta = diff + 8192;
+    } else {
+        delta = diff;
     }
 
-    int16_t out_position = motor->message.total_angle;
-    while(out_position < 0)
-       out_position += DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
-    while(out_position > DJI_ECD_ANGLE_MAX*motor->reduction_ratio)
-        out_position -= DJI_ECD_ANGLE_MAX*motor->reduction_ratio;
-		
-    motor->message.out_position =out_position*DJI_ECD_ANGLE_COEF/motor->reduction_ratio-PI;
+    // 3. 累加总角度 (int64_t 不会溢出)
+    motor->message.total_angle += delta;
+
+    // 4. 核心修复：先转为总弧度，再归一化
+    // 公式：总弧度 = (总编码器值 * 2PI/8192) / 减速比
+    double total_rad = (double)motor->message.total_angle * DJI_ECD_ANGLE_COEF / motor->reduction_ratio;
+    
+    // 使用 fmod 对 2PI 取模，结果范围是 (-2PI, 2PI)
+    motor->message.out_position = (float)fmod(total_rad, 2.0 * PI);
+
+    // 5. 将范围调整到 (-PI, PI]
+    if (motor->message.out_position > PI) {
+        motor->message.out_position -= 2.0f * PI;
+    } else if (motor->message.out_position <= -PI) {
+        motor->message.out_position += 2.0f * PI;
+    }
 }
 
 
@@ -112,13 +121,19 @@ DjiMotorInstance_s *Motor_Dji_Register(DjiMotorInitConfig_s *config) {
         return NULL;
     }
     // 分配内存
-    DjiMotorInstance_s *motor_instance = (DjiMotorInstance_s *)pvPortMalloc(sizeof(DjiMotorInstance_s));
+    DjiMotorInstance_s *motor_instance = (DjiMotorInstance_s *)user_malloc(sizeof(DjiMotorInstance_s));
     memset(motor_instance, 0, sizeof(DjiMotorInstance_s)); // 清空内存
     // 初始化电机基本信息
     motor_instance->topic_name = config->topic_name;
     motor_instance->type = config->type;
     motor_instance->control_mode = config->control_mode;
     motor_instance->reduction_ratio = config->reduction_ratio;
+    if(config->reduction_ratio == 0){
+        #ifdef USER_LOG
+        Log_Error("where`s your fucking reduction ratio config?");
+        #endif
+        return NULL;
+    }
     // 计算id
     if(config->type == GM6020){
         motor_instance->id = (config->can_config.rx_id - 4) % 0x200;
@@ -135,7 +150,7 @@ DjiMotorInstance_s *Motor_Dji_Register(DjiMotorInitConfig_s *config) {
     config->can_config.parent_ptr = motor_instance;
     motor_instance->can_instance = Can_Register(&config->can_config);
     if (motor_instance->can_instance == NULL) {
-        vPortFree(motor_instance); // 释放内存
+        user_free(motor_instance); // 释放内存
         return NULL;
     }
     motor_dji_instances[idx++] = motor_instance; // 将电机实例添加到电机数组中

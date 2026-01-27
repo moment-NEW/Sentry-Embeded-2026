@@ -39,7 +39,7 @@ float test_vel_tr=0.0,test_output_tr=0.0;
 uint16_t lasttime=0;
 //float speed1=0.0,speed2=0.0,speed3=0.0,speed4=0.0;
 //float target1=0.0,target2=0.0,target3=0.0,target4=0.0;
-float target_up_position=3.14159f;//暂时的逻辑，一定要记得改回来！！！！！
+float target_up_position=0.0f;//暂时的逻辑，一定要记得改回来！！！！！(又记，可能是改回来了吧)
 float target_up_pitch=0.0f;
 #endif
 uint8_t rune_flag=0;//打符开关
@@ -147,7 +147,7 @@ static ChassisInitConfig_s Chassis_config={
 
 //上云台yaw电机配置(用于读取编码器角度)
 static DjiMotorInitConfig_s Up_config = {
-    .id = 5,                      // 电机ID(1~4)
+    .id = 1,                      // 电机ID(1~4)
     .type = GM6020,               // 电机类型
      .control_mode = DJI_POSITION,  // 电机控制模式
     .topic_name = "up_yaw",
@@ -158,7 +158,7 @@ static DjiMotorInitConfig_s Up_config = {
         .rx_id = 0x205,                     // 接收id
         .can_module_callback=NULL,
     },
-    .reduction_ratio = 19.0f,              // 减速比
+    .reduction_ratio = 1.0f,              // 减速比
 
     .angle_pid_config = {
         .kp = 0.0f,                        // 位置环比例系数
@@ -220,7 +220,7 @@ static DjiMotorInitConfig_s Up_config = {
 //        .out_max = 2000.0,
 //    }
 		 .velocity_pid_config = {
-        .kp = 0.0f,//1.0f,
+        .kp = 1.0f,
         .ki = 0.0f,
         .kd = 0.0f,
         .kf = 0.0f,
@@ -296,7 +296,7 @@ gimbal_follow_config_s GimbalFollow_config = {
     .up_angle_ptr = NULL, // 指向上云台yaw电机的角度反馈,因为不能赋值变量初始化，所以在任务开始时赋值
     .angle_range = 2.0f * PI, // 角度范围，单位弧度，360度为2*PI
     .gimbal_follow_pid_config = {
-        .kp = 4.5f,
+        .kp = -1.0f,
         .ki = 0.0f,
         .kd = 0.0f,
         .dead_zone = 0.15f,
@@ -312,6 +312,7 @@ static void Chassis_Disable(ChassisInstance_s *chassis){
 	}
 	
 }
+//这里要用引用传参否则会复制结构体，很浪费资源
 static void Chassis_Enable(ChassisInstance_s *chassis){
 	for(uint8_t i=0;i<4;i++){
 	Pid_Enable(chassis->chassis_motor[i]->velocity_pid);
@@ -323,6 +324,7 @@ static void Chassis_Enable(ChassisInstance_s *chassis){
 
 
 
+//其实把结构体定义到外面没有什么意义，不用指针的话还是会复制一份到栈内
 
 //主任务
 void StartChassisTask(void const * argument)
@@ -423,7 +425,7 @@ void StartChassisTask(void const * argument)
     }
 
     Minipc_UpdateAllInstances();
-		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0x31){
+		if(MiniPC_SelfAim->message.norm_aim_pack.find_bool==0x31||control_mode==UP_MODE){
       //两个周期跑一次。也就是500Hz
       if(send_flag==0){
         send_flag=1;
@@ -433,7 +435,9 @@ void StartChassisTask(void const * argument)
       }
   }
 		
-    
+    //测试代码
+    Follow_Calculate(GimbalFollow_Instance);
+    //测试代码结束
     switch (control_mode)
     {
     case PC_MODE:
@@ -499,6 +503,10 @@ void StartChassisTask(void const * argument)
         //Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
 		    Chassis_Change_Mode(Chassis, CHASSIS_FOLLOW_GIMBAL);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
+        //摇杆漂移死区
+        if(abs(CH_Receive_s->dr16_handle.ch3)<5){
+          CH_Receive_s->dr16_handle.ch3=0;
+        }
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
@@ -598,6 +606,7 @@ void StartChassisTask(void const * argument)
         break;
       case UP_MODE:
       //小云台逻辑
+        Follow_Calculate(GimbalFollow_Instance);
         target_up_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
         target_up_pitch-=(CH_Receive_s->dr16_handle.ch1)*3.1415/ 360000.0f;
         
@@ -616,6 +625,10 @@ void StartChassisTask(void const * argument)
 				//底盘逻辑
         Chassis_Change_Mode(Chassis, CHASSIS_NORMAL);
 				Chassis->gimbal_yaw_angle=Down_yaw->message.out_position;
+        //摇杆漂移死区
+        if(abs(CH_Receive_s->dr16_handle.ch3)<5){
+          CH_Receive_s->dr16_handle.ch3=0;
+        }
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
@@ -623,7 +636,8 @@ void StartChassisTask(void const * argument)
         //Motor_Dm_Control(Down_yaw,target_position);
 				//test_output=Down_yaw->output;
 				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
-				target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+				////target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+        target_speed=GimbalFollow_Instance->output;
 			  test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,Quater.Gyro[2]);
 				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);
 				Motor_Dm_Transmit(Down_yaw);

@@ -242,11 +242,10 @@ typedef struct {
 typedef struct {
     char start;                // 0 帧头，取 's'
     char datatype;             // 1 消息类型 0xB7
-    uint16_t red_outpost_HP;   // 2 - 3  红方前哨站血量
-    uint16_t red_base_HP;      // 4 - 5  红方基地血量
-    uint16_t blue_outpost_HP;  // 6 - 7 蓝方前哨站血量
-    uint16_t blue_base_HP;     // 8 - 9 蓝方基地血量
-    uint8_t reserved[20];      // 10 - 30 预留空位
+    uint16_t outpost_HP;   // 2 - 3  己方前哨站血量
+    uint16_t base_HP;      // 4 - 5  己方基地血量
+   
+    uint8_t reserved[24];      // 6 - 30 预留空位
     char end;                  // 31 帧尾，取 'e'
 } building_hp_package;
 
@@ -394,6 +393,14 @@ typedef struct {
     char end;                  // 31 帧尾，取 'e'
 } exp_tx_aim_package;
 
+typedef struct {
+    char start;                // 0 帧头，取 's'
+    char datatype;             // 1 消息类型 0xBE
+    uint16_t current_HP;      // 2 - 3 当前血量
+    uint16_t projectile_17mm;          // 4 - 5 17mm剩余弹量
+    uint8_t reserved[26];       // 6 - 31 预留空位（填充0）
+    char end;                  // 31 帧尾，取 'e'
+} Sentry_Status_Tx_Package_t;
 
 typedef union {
     Computer_Tx_Message_t self_aim_pack;        // 自瞄
@@ -410,6 +417,7 @@ typedef union {
     operation_feedback_package op_feedback;     // 操作反馈
     hit_feedback_package hit_feedback;          // 受击反馈
     launch_status_package launch_status;        // 发射状态
+    Sentry_Status_Tx_Package_t sentry_status;  // 哨兵状态
     #endif
     uint8_t raw_data[32];                       // 用于访问整体的代码
 } send_union;
@@ -450,6 +458,10 @@ void Minipc_ConfigExpAimTx(MiniPC_Instance* instance,uint8_t* mode,
 void Minipc_ConfigFriendPos1Tx(MiniPC_Instance* instance, float* inf3_x, float* inf3_y, float* inf4_x, float* inf4_y, float* inf5_x, float* inf5_y);
 void Minipc_ConfigRedHPTx(MiniPC_Instance* instance, uint16_t* red1_hp, uint16_t* red2_hp, uint16_t* red3_hp, uint16_t* red4_hp, uint16_t* red5_hp, uint16_t* red7_hp);
 void Minipc_ConfigGameInfoTx(MiniPC_Instance* instance, uint8_t* enemy_color, uint8_t* game_progress, uint16_t* remain_time, uint16_t* gold_coin);
+void Minipc_ConfigBuildingHPTx(MiniPC_Instance* instance, uint16_t* outpost_hp, uint16_t* base_hp);
+void Minipc_ConfigBlueHPTx(MiniPC_Instance* instance, uint16_t* blue1_hp, uint16_t* 
+    blue2_hp, uint16_t* blue3_hp, uint16_t* blue4_hp, uint16_t* blue5_hp, uint16_t* blue7_hp);
+void Minipc_ConfigSentryStatusTx(MiniPC_Instance* instance, uint16_t* current_hp, uint16_t* projectile_17mm);
 #endif
 // 统一的更新和发送函数
 void Minipc_UpdateAllInstances(void);

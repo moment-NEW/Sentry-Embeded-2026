@@ -14,6 +14,7 @@
 #include "bsp_fdcan.h"
 #endif
 #include "alg_pid.h"
+#include "bsp_log.h"
 #include <stdbool.h>
 
 #define PI 3.14159265358979323846 // 圆周率要换位置
@@ -39,7 +40,7 @@ typedef struct{
     int16_t rotor_position;             // 电机转子角度编码器值
     int16_t rotor_last_position;        // 电机转子上次角度编码器值
     float rotor_velocity;               // 电机转子速度(rpm)
-    int16_t total_angle;                // 电机转子累计旋转总角度
+    int64_t total_angle;                // 电机转子累计旋转总角度
     int16_t torque_current;             // 扭计电流(-20A~20A映射到-16384~16384)
     float temperature;                  // 电机温度(°C)
 }DjiMotorMessage_s;
@@ -52,7 +53,7 @@ typedef struct{
     uint8_t id;                           // 电机ID(0~8)
 
     CanInitConfig_s can_config;           // 电机CAN配置
-    uint8_t reduction_ratio;              // 减速比
+    float reduction_ratio;              // 减速比
 
     PidInitConfig_s angle_pid_config;     // 角度控制PID配置
     PidInitConfig_s velocity_pid_config;  // 速度控制PID配置
@@ -69,7 +70,7 @@ typedef struct{
     PidInstance_s *velocity_pid;        // 速度控制PID实例指针
 
     DjiMotorMessage_s message;          // 电机状态信息
-    uint8_t reduction_ratio;            // 电机减速比
+    float reduction_ratio;            // 电机减速比
 
     float target_position;              // 电机目标角度(-PI~PI)
     float target_velocity;              // 电机目标速度(rpm)
