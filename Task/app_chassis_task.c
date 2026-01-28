@@ -292,11 +292,11 @@ board_config_t board_config = {
 };
 
 gimbal_follow_config_s GimbalFollow_config = {
-    .up_origin = 2.00935459f, // 云台偏航零点角度，需与Chassis_config.gimbal_yaw_zero保持一致
+    .up_origin = 3.14f, // 云台偏航零点角度，需与Chassis_config.gimbal_yaw_zero保持一致
     .up_angle_ptr = NULL, // 指向上云台yaw电机的角度反馈,因为不能赋值变量初始化，所以在任务开始时赋值
     .angle_range = 2.0f * PI, // 角度范围，单位弧度，360度为2*PI
     .gimbal_follow_pid_config = {
-        .kp = -1.0f,
+        .kp = -2.0f,
         .ki = 0.0f,
         .kd = 0.0f,
         .dead_zone = 0.15f,
@@ -579,6 +579,7 @@ void StartChassisTask(void const * argument)
                     if(lasttime > 200) {
                         // 堵转反转
                         Trigger->target_velocity = -target_tr;
+                        //Trigger->target_position -= 10*BULLET_ANGLE;
                         lasttime++;
                         if(lasttime > 400) lasttime = 0;
                     } else {
@@ -636,7 +637,7 @@ void StartChassisTask(void const * argument)
         //Motor_Dm_Control(Down_yaw,target_position);
 				//test_output=Down_yaw->output;
 				//Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,Down_yaw->output);
-				////target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
+				//target_speed=Pid_Calculate(Down_yaw->angle_pid,target_position,Quater.yaw);
         target_speed=GimbalFollow_Instance->output;
 			  test_output=Pid_Calculate(Down_yaw->velocity_pid,target_speed,Quater.Gyro[2]);
 				Motor_Dm_Mit_Control(Down_yaw,0.0,0.0,test_output);

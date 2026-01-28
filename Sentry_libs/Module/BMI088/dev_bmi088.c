@@ -210,7 +210,7 @@ void BMI088_CalibrateOffset(Bmi088Instance_s *bmi088_ins) {
     
     do {
         // 超时保护
-        if (Dwt_GetTimeline_s() - start_time > 10.0f) {
+        if (Dwt_GetTimeline_s() - start_time > 10.0f) { // 恢复10s超时
             // 校准超时，使用默认值
             bmi088_ins->gyro_offset[0] = 0.0f;
             bmi088_ins->gyro_offset[1] = 0.0f;
@@ -462,7 +462,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
     // 执行dummy读取触发I2C到SPI模式切换
     uint8_t dummy_data = 0;
     BMI088_AccelRead(instance->spi_acc, 0x00, &dummy_data, 1);
-    Dwt_Delay(0.001); // 等待1ms
+    Dwt_Delay(0.001); // 恢复初始1ms延时
     // 1. 检查WHO AM I寄存器
     if (!BMI088_CheckWhoAmI(instance->spi_acc, instance->spi_gyro)) {
         return false;  // 传感器连接失败
@@ -489,7 +489,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
 
     // 校验电源模式配置
     uint8_t power_mode = 0;
-    Dwt_Delay(0.01); // 等待配置生效
+    Dwt_Delay(0.003); // 等待配置生效 (参考手册建议 2-5ms)
     if (!BMI088_AccelRead(instance->spi_acc, 0x7D, &power_mode, 1) ) {
         return false; // 电源模式配置校验失败
     }
@@ -501,7 +501,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
 
     // 校验工作模式配置
     uint8_t acc_conf = 0;
-    Dwt_Delay(0.01); // 等待配置生效
+    Dwt_Delay(0.003); // 等待配置生效 (参考手册建议 2-5ms)
     if (!BMI088_AccelRead(instance->spi_acc, 0x40, &acc_conf, 1) || acc_conf != 0xAB) {
         return false; // 工作模式配置校验失败
     }
@@ -512,7 +512,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
     }
     // 校验量程配置
     uint8_t acc_range = 0;
-    Dwt_Delay(0.01); // 等待配置生效
+    Dwt_Delay(0.003); // 等待配置生效 (参考手册建议 2-5ms)
     if (!BMI088_AccelRead(instance->spi_acc, 0x41, &acc_range, 1) || acc_range != 0x01) {
         return false; // 量程配置校验失败
     }
@@ -544,7 +544,7 @@ bool Bmi088_Init(Bmi088Instance_s *instance) {
 
     // 校验陀螺仪量程配置
     uint8_t gyro_range = 0;
-    Dwt_Delay(0.01); // 等待配置生效
+    Dwt_Delay(0.003); // 等待配置生效 (参考手册建议 2-5ms)
     if (!BMI088_GyroRead(instance->spi_gyro, 0x0F, &gyro_range, 1) || gyro_range != 0x00) {
         return false; // 陀螺仪量程配置校验失败
     }
@@ -655,8 +655,8 @@ Bmi088Instance_s* Bmi088_Register(Bmi088InitConfig_s *bmi088_cfg){
     // 循环直到超时或者注册成功
     while(Bmi088_Init(bmi088_ins) != true ) {
         
-        // 添加延时避免过快重试
-				Dwt_Delay(0.1);
+        // 缩短重试延时到10ms
+				Dwt_Delay(0.01);
     }
     if (time >= 100) {
         // 初始化超时，释放内存
