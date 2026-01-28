@@ -202,7 +202,7 @@ static DjiMotorInitConfig_s Up_config = {
         .kd_int  = 0.0f,     // [调试设定] 要发送给电机的Kd值 (仅MIT模式)
     },
     .angle_pid_config = {
-        .kp = 1.0f,//8.0f,
+        .kp = 8.0f,//1.0f,//8.0f,
         .ki = 0.0f,
         .kd = 0.0f,
         .kf = 0.0f,
@@ -323,11 +323,20 @@ static void Chassis_Enable(ChassisInstance_s *chassis){
 
 static void Trigger_Control(DjiMotorInstance_s *trigger,uint8_t shoot_bool){
   if(shoot_bool==1){
-    trigger->target_position+= 0.01*BULLET_ANGLE;
+    if(trigger->message.torque_current>max_torque||trigger->message.torque_current<-max_torque){
+      lasttime++;
+      if(lasttime>5){
+        lasttime=0;
+        trigger->target_position-= 10*BULLET_ANGLE;
+      }
+    }else{
+      lasttime=0;
     
+      trigger->target_position+= BULLET_ANGLE;
+    }
   }else{
     trigger->target_velocity=0.0f;
-    Pid_Disable(trigger->velocity_pid);
+    Pid_Disable(trigger->angle_pid);
   }
 }
 
@@ -518,6 +527,8 @@ void StartChassisTask(void const * argument)
 				Chassis->Chassis_speed.Vx=CH_Receive_s->dr16_handle.ch3/132.0f;
 				Chassis->Chassis_speed.Vy=-CH_Receive_s->dr16_handle.ch2/132.0f;
 				Chassis_Control(Chassis);
+        //小yaw位置跟随，避免出现问题
+        target_up_position=board_instance->received_up_yaw_pos;
         //大Yaw控制逻辑
 				target_position-=(CH_Receive_s->dr16_handle.ch0) * 3.1415 / 360000.0f;
         target_position=target_position>PI?target_position-2*PI:target_position;
