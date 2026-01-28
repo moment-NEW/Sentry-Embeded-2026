@@ -296,7 +296,7 @@ gimbal_follow_config_s GimbalFollow_config = {
     .up_angle_ptr = NULL, // 指向上云台yaw电机的角度反馈,因为不能赋值变量初始化，所以在任务开始时赋值
     .angle_range = 2.0f * PI, // 角度范围，单位弧度，360度为2*PI
     .gimbal_follow_pid_config = {
-        .kp = -2.0f,
+        .kp = -5.0f,
         .ki = 0.0f,
         .kd = 0.0f,
         .dead_zone = 0.15f,
@@ -321,7 +321,15 @@ static void Chassis_Enable(ChassisInstance_s *chassis){
 	
 }
 
-
+static void Trigger_Control(DjiMotorInstance_s *trigger,uint8_t shoot_bool){
+  if(shoot_bool==1){
+    trigger->target_position+= 0.01*BULLET_ANGLE;
+    
+  }else{
+    trigger->target_velocity=0.0f;
+    Pid_Disable(trigger->velocity_pid);
+  }
+}
 
 
 //其实把结构体定义到外面没有什么意义，不用指针的话还是会复制一份到栈内
