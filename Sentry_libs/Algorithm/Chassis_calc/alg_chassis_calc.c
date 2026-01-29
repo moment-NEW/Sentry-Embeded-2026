@@ -1,4 +1,5 @@
 #include "alg_chassis_calc.h"
+#include "alg_fliter.h"
 #include "math.h"
 #include "main.h"
 #include <stdbool.h>
@@ -283,9 +284,34 @@ bool Chassis_Control(ChassisInstance_s *Chassis)
         break;
     }
     // 2. 坐标系转换
-    Temp_Speed.Vx =  Chassis->Chassis_speed.Vx *cosf(Find_Angle(Chassis)) - Chassis->Chassis_speed.Vy * sinf(Find_Angle(Chassis));
-    Temp_Speed.Vy =  Chassis->Chassis_speed.Vx *sinf(Find_Angle(Chassis)) + Chassis->Chassis_speed.Vy * cosf(Find_Angle(Chassis));
-    Temp_Speed.Vw =  Chassis->Chassis_speed.Vw;
+    float input_Vx =  Chassis->Chassis_speed.Vx *cosf(Find_Angle(Chassis)) - Chassis->Chassis_speed.Vy * sinf(Find_Angle(Chassis));
+    float input_Vy =  Chassis->Chassis_speed.Vx *sinf(Find_Angle(Chassis)) + Chassis->Chassis_speed.Vy * cosf(Find_Angle(Chassis));
+    float input_Vw =  Chassis->Chassis_speed.Vw;
+
+    // 2.1 TD 速度规划 (最速跟踪微分器)
+    static float v1_x = 0, v2_x = 0;
+    static float v1_y = 0, v2_y = 0;
+    static float v1_w = 0, v2_w = 0;
+    float h = 0.001f;   // 1ms 采样周期 (app_chassis_task osDelay(1))
+    float r_xy = 3.0f;  // 加速度限制 (m/s^2 或其他单位)
+    float r_w = 10.0f;  // 角加速度限制 (rad/s^2)
+
+    // X轴速度跟踪
+    v2_x += h * fhan_correct(v1_x - input_Vx, v2_x, r_xy, h);
+    v1_x += h * v2_x;
+    
+    // Y轴速度跟踪
+    v2_y += h * fhan_correct(v1_y - input_Vy, v2_y, r_xy, h);
+    v1_y += h * v2_y;
+
+    // W轴速度跟踪
+    v2_w += h * fhan_correct(v1_w - input_Vw, v2_w, r_w, h);
+    v1_w += h * v2_w;
+
+    Temp_Speed.Vx = v1_x;
+    Temp_Speed.Vy = v1_y;
+    Temp_Speed.Vw = v1_w;
+    
     // 3. 执行运动学逆解
     Chassis_IK_Calc(Chassis);
 
